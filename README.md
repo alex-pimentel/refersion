@@ -75,9 +75,9 @@ flowchart LR
     B["React 19 + Inertia"] --> C["LeaderboardController"]
     C --> S["LeaderboardService"]
     S --> K[("Cache: SQLite")]
-    S --> A["RefersionAuthService"]
-    A --> O["POST /oauth/token"]
     S --> R["RefersionClient"]
+    R --> A["RefersionAuthService"]
+    A --> O["POST /oauth/token"]
     R --> L["GET /affiliates"]
     R --> F["GET /affiliates/:id/custom-fields"]
 ```
@@ -307,7 +307,6 @@ app/
   DTOs/
   Exceptions/
   Http/Controllers/
-  Http/Requests/
   Services/Leaderboard/
   Services/Refersion/
   Support/

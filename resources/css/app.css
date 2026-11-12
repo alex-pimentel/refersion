@@ -19,6 +19,12 @@
     --color-surface-blue: #d4e2f2;
     --color-surface-warm: #ded7d4;
     --color-brand-muted: #53677d;
+    --color-status-live-bg: #eaf9ec;
+    --color-status-live-text: #14532d;
+    --color-status-cached-bg: #eaf2ff;
+    --color-status-cached-text: #1d4ed8;
+    --color-status-stale-bg: #fff5e2;
+    --color-status-stale-text: #8a4b00;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);

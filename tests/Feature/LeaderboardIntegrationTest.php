@@ -98,7 +98,7 @@ class LeaderboardIntegrationTest extends TestCase
             return Http::response(['error' => 'Unexpected request'], 500);
         });
 
-        $result = app(LeaderboardService::class)->get(forceRefresh: true);
+        $result = app(LeaderboardService::class)->refresh();
 
         $this->assertSame([1, 4, 6, 7, 11], array_map(fn ($entry) => $entry->affiliateId, $result->entries));
         $this->assertSame([1, 2, 3, 4, 5], array_map(fn ($entry) => $entry->rank, $result->entries));

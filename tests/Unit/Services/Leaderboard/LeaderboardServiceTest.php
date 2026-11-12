@@ -259,7 +259,7 @@ class LeaderboardServiceTest extends TestCase
         $this->assertCount(1, $second->entries);
     }
 
-    public function test_force_refresh_bypasses_the_cache(): void
+    public function test_refresh_bypasses_the_cache(): void
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->twice()->andReturn([
@@ -272,7 +272,7 @@ class LeaderboardServiceTest extends TestCase
         $service = new LeaderboardService($client);
 
         $first = $service->get();
-        $second = $service->get(forceRefresh: true);
+        $second = $service->refresh();
 
         $this->assertFalse($first->meta->cached);
         $this->assertFalse($second->meta->cached);
@@ -338,7 +338,7 @@ class LeaderboardServiceTest extends TestCase
         $first = $service->get();
 
         try {
-            $service->get(forceRefresh: true);
+            $service->refresh();
             $this->fail('Expected the refresh to fail.');
         } catch (RefersionApiException) {
             // The previous cache entry must survive the failed refresh.

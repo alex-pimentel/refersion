@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\DTOs\LeaderboardResult;
 use App\Exceptions\LeaderboardBusyException;
 use App\Exceptions\RefersionApiException;
 use App\Exceptions\RefersionAuthenticationException;
 use App\Exceptions\RefersionRateLimitException;
 use App\Exceptions\RefersionScanLimitException;
-use App\Http\Requests\LeaderboardRefreshRequest;
 use App\Services\Leaderboard\LeaderboardService;
+use Closure;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,28 +25,33 @@ class LeaderboardController extends Controller
     public function index(): Response
     {
         return Inertia::render('leaderboard', [
-            'leaderboard' => Inertia::defer(fn (): array => $this->buildPageData()),
+            'leaderboard' => Inertia::defer(fn (): array => $this->loadPageData(
+                fn (): LeaderboardResult => $this->leaderboard->get(),
+            )),
         ]);
     }
 
-    public function refresh(LeaderboardRefreshRequest $request): Response
+    public function refresh(): Response
     {
         return Inertia::render('leaderboard', [
-            'leaderboard' => $this->buildPageData(forceRefresh: true),
+            'leaderboard' => $this->loadPageData(
+                fn (): LeaderboardResult => $this->leaderboard->refresh(),
+            ),
         ]);
     }
 
     /**
+     * @param  Closure(): LeaderboardResult  $loader
      * @return array{
      *     data: array<int, array<string, mixed>>,
      *     meta: array<string, mixed>|null,
      *     error: array{message: string, reference: string}|null
      * }
      */
-    public function buildPageData(bool $forceRefresh = false): array
+    private function loadPageData(Closure $loader): array
     {
         try {
-            $result = $this->leaderboard->get($forceRefresh);
+            $result = $loader();
             $payload = $result->toArray();
 
             return [

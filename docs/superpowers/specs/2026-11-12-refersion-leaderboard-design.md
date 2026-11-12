@@ -265,11 +265,12 @@ app/
     LeaderboardBusyException.php
   Http/
     Controllers/LeaderboardController.php
-    Requests/LeaderboardRefreshRequest.php
   Services/Refersion/
     RefersionAuthService.php
     RefersionClient.php
+    RefersionRetryPolicy.php
   Services/Leaderboard/
+    LeaderboardEligibility.php
     LeaderboardService.php
   Support/
     Money.php
@@ -311,10 +312,10 @@ docker/
 
 **Initial page load (`GET /`)**
 
-1. Controller returns an Inertia response with `leaderboard` as a deferred prop. The deferred closure delegates to a testable `buildPageData()` method on the controller (or a small page-data service).
+1. Controller returns an Inertia response with `leaderboard` as a deferred prop. The deferred closure delegates to a private `loadPageData()` method on the controller, which receives the explicit `get()` loader.
 2. React renders the page shell, header, and skeleton rows immediately.
 3. Inertia requests the deferred prop.
-4. `buildPageData()` calls `LeaderboardService`.
+4. `loadPageData()` invokes the supplied loader, which calls `LeaderboardService::get()`.
    - Cache hit: returns cached DTO with `meta.cached = true`.
    - Cache miss: acquires the leaderboard lock, builds fresh data, stores it, returns with `meta.cached = false`.
    - Any domain exception is caught here, logged with a reference, and converted to `{ data: [], meta: null, error: { message, reference } }`. The deferred request itself always resolves to a renderable payload.
@@ -323,7 +324,7 @@ docker/
 **Refresh (`POST /leaderboard/refresh`)**
 
 1. Inertia posts with CSRF protection; route has `throttle:10,1`.
-2. Controller validates the optional `force` boolean and calls `LeaderboardService::get(forceRefresh: true)`.
+2. Controller calls `LeaderboardService::refresh()` directly; the POST route itself is the forced-refresh action.
 3. Service acquires the lock, rebuilds, and replaces the cached result on success.
 4. Controller returns the same Inertia page with fresh props; page keeps state and scroll.
 5. On failure, controller returns the page with `error` and the last cached result if available. React keeps the previous table data and shows a warning banner.
@@ -1129,7 +1130,7 @@ Optional `Makefile` targets: `setup`, `up`, `down`, `test`, `lint`, `build`.
 - CSRF protection is active for the refresh POST via Laravel/Inertia.
 - Inbound throttling: `throttle:10,1` on refresh, `throttle:60,1` on the page.
 - Nginx security headers as in §11.4.
-- Validate the optional `force` boolean with a FormRequest.
+- The refresh route requires no request body; the route itself is the explicit refresh action.
 - Document production authentication/SSO as a next step.
 - Do not commit API credentials; the operator supplies them via `.env`.
 

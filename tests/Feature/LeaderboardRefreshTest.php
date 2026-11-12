@@ -25,8 +25,7 @@ class LeaderboardRefreshTest extends TestCase
     public function test_refresh_forces_a_new_build(): void
     {
         $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('get')
-                ->with(true)
+            $mock->shouldReceive('refresh')
                 ->once()
                 ->andReturn($this->leaderboardResult());
         });
@@ -45,8 +44,7 @@ class LeaderboardRefreshTest extends TestCase
     public function test_refresh_failure_returns_the_cached_result_with_a_stale_error(): void
     {
         $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('get')
-                ->with(true)
+            $mock->shouldReceive('refresh')
                 ->once()
                 ->andThrow(new RefersionApiException('upstream failure'));
             $mock->shouldReceive('cached')
@@ -68,8 +66,7 @@ class LeaderboardRefreshTest extends TestCase
     public function test_refresh_is_throttled_after_ten_requests(): void
     {
         $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('get')
-                ->with(true)
+            $mock->shouldReceive('refresh')
                 ->times(10)
                 ->andReturn($this->leaderboardResult());
         });
@@ -89,7 +86,7 @@ class LeaderboardRefreshTest extends TestCase
                     rank: 1,
                     affiliateId: 8572722,
                     name: 'Avery Cole',
-                    email: 'lily@example.com',
+                    email: 'avery@example.com',
                     commissionCents: 702513,
                     currency: 'USD',
                 ),
@@ -98,7 +95,7 @@ class LeaderboardRefreshTest extends TestCase
                 generatedAt: '2026-11-12T20:00:00+00:00',
                 cached: false,
                 totalAffiliates: 44,
-                scannedAffiliates: 20,
+                scannedAffiliates: 13,
                 eligibleCount: 1,
                 customFieldRequests: 20,
                 durationMs: 120,

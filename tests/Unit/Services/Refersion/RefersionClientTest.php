@@ -93,6 +93,29 @@ class RefersionClientTest extends TestCase
         $this->assertSame([1, 2], $requestedPages);
     }
 
+    public function test_page_limit_is_capped_at_the_api_maximum(): void
+    {
+        config(['services.refersion.page_limit' => 500]);
+
+        $requestedLimit = null;
+
+        Http::fake(function (Request $request) use (&$requestedLimit) {
+            if ($this->isAuthRequest($request)) {
+                return $this->authResponse();
+            }
+
+            $requestedLimit = $this->query($request, 'limit');
+
+            return Http::response([
+                'data' => [$this->affiliate(1, 500)],
+            ]);
+        });
+
+        app(RefersionClient::class)->listAllAffiliates();
+
+        $this->assertSame(100, $requestedLimit);
+    }
+
     public function test_it_maps_affiliate_performance_to_cents(): void
     {
         $this->fakeAuth();

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Leaderboard;
 
 use App\DTOs\AffiliateSummary;
-use App\DTOs\CustomField;
 use App\DTOs\LeaderboardEntry;
 use App\DTOs\LeaderboardMeta;
 use App\DTOs\LeaderboardResult;
@@ -17,29 +16,33 @@ use Illuminate\Support\Facades\Cache;
 
 class LeaderboardService
 {
+    private readonly LeaderboardEligibility $eligibility;
+
     public function __construct(
         private readonly RefersionClient $client,
-    ) {}
+        ?LeaderboardEligibility $eligibility = null,
+    ) {
+        $this->eligibility = $eligibility ?? new LeaderboardEligibility;
+    }
 
-    public function get(bool $forceRefresh = false): LeaderboardResult
+    public function get(): LeaderboardResult
     {
-        $cacheKey = $this->cacheKey();
-        $ttl = max(60, (int) config('services.refersion.leaderboard_cache_ttl', 300));
-
-        if (! $forceRefresh) {
-            $cached = Cache::get($cacheKey);
-
-            if ($cached instanceof LeaderboardResult) {
-                return $cached->withCached(true);
-            }
+        if ($cached = $this->cached()) {
+            return $cached;
         }
 
-        return $this->withLock($cacheKey, $forceRefresh, function () use ($cacheKey, $ttl): LeaderboardResult {
-            $result = $this->build();
-            Cache::put($cacheKey, $result, $ttl);
+        return $this->withLock(function (): LeaderboardResult {
+            if ($cached = $this->cached()) {
+                return $cached;
+            }
 
-            return $result;
-        });
+            return $this->rebuild();
+        }, true);
+    }
+
+    public function refresh(): LeaderboardResult
+    {
+        return $this->withLock(fn (): LeaderboardResult => $this->rebuild(), false);
     }
 
     public function cached(): ?LeaderboardResult
@@ -57,34 +60,30 @@ class LeaderboardService
     /**
      * @param  callable(): LeaderboardResult  $callback
      */
-    private function withLock(
-        string $cacheKey,
-        bool $forceRefresh,
-        callable $callback,
-    ): LeaderboardResult {
+    private function withLock(callable $callback, bool $allowCachedFallback): LeaderboardResult
+    {
         try {
-            return Cache::lock($this->lockKey(), $this->lockTtl())->block(10, function () use ($cacheKey, $forceRefresh, $callback): LeaderboardResult {
-                if (! $forceRefresh) {
-                    $cached = Cache::get($cacheKey);
-
-                    if ($cached instanceof LeaderboardResult) {
-                        return $cached->withCached(true);
-                    }
-                }
-
-                return $callback();
-            });
+            return Cache::lock($this->lockKey(), $this->lockTtl())->block(10, $callback);
         } catch (LockTimeoutException) {
-            if (! $forceRefresh) {
-                $cached = Cache::get($cacheKey);
-
-                if ($cached instanceof LeaderboardResult) {
-                    return $cached->withCached(true);
-                }
+            if ($allowCachedFallback && ($cached = $this->cached())) {
+                return $cached;
             }
 
             throw new LeaderboardBusyException;
         }
+    }
+
+    private function rebuild(): LeaderboardResult
+    {
+        $result = $this->build();
+        Cache::put($this->cacheKey(), $result, $this->ttl());
+
+        return $result;
+    }
+
+    private function ttl(): int
+    {
+        return max(60, (int) config('services.refersion.leaderboard_cache_ttl', 300));
     }
 
     private function build(): LeaderboardResult
@@ -121,7 +120,7 @@ class LeaderboardService
             foreach ($chunk as $affiliate) {
                 $scanned++;
 
-                if (! $this->isEligible($fieldsByAffiliate[$affiliate->id] ?? [])) {
+                if (! $this->eligibility->isEligible($fieldsByAffiliate[$affiliate->id] ?? [])) {
                     continue;
                 }
 
@@ -159,20 +158,6 @@ class LeaderboardService
         );
 
         return new LeaderboardResult($entries, $meta);
-    }
-
-    /**
-     * @param  CustomField[]  $fields
-     */
-    private function isEligible(array $fields): bool
-    {
-        foreach ($fields as $field) {
-            if ($field->label === 'Display in leaderboard' && $field->value === 'TRUE') {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function cacheKey(): string

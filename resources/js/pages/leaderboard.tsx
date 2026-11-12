@@ -3,9 +3,9 @@ import { ErrorState } from '@/components/error-state';
 import { LeaderboardTable } from '@/components/leaderboard-table';
 import { RefreshButton } from '@/components/refresh-button';
 import { SkeletonTable } from '@/components/skeleton-table';
+import { StatusBadge } from '@/components/status-badge';
 import { StatusBanner } from '@/components/status-banner';
 import { formatRelativeTime } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import type { LeaderboardPageData } from '@/types/leaderboard';
 import { Head, router } from '@inertiajs/react';
 import { Trophy } from 'lucide-react';
@@ -39,6 +39,7 @@ export default function Leaderboard({ leaderboard }: Props) {
     const meta = leaderboard?.meta ?? (activeError ? (lastGood?.meta ?? null) : null);
     const hasData = data.length > 0;
     const isStale = activeError !== null && hasData;
+    const status = isStale ? 'stale' : meta?.cached ? 'cached' : 'live';
     const showFullError = activeError !== null && !hasData;
     const showEmpty = !loading && !activeError && data.length === 0;
     const showTable = !loading && hasData;
@@ -114,24 +115,7 @@ export default function Leaderboard({ leaderboard }: Props) {
                                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
                                     {meta ? (
                                         <>
-                                            <span
-                                                className={cn(
-                                                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
-                                                    isStale
-                                                        ? 'bg-[#FFF5E2] text-[#8A4B00]'
-                                                        : meta.cached
-                                                          ? 'bg-[#EAF2FF] text-[#1D4ED8]'
-                                                          : 'bg-[#EAF9EC] text-[#14532D]',
-                                                )}
-                                            >
-                                                <span
-                                                    className={cn(
-                                                        'h-1.5 w-1.5 rounded-full',
-                                                        isStale ? 'bg-brand-orange' : meta.cached ? 'bg-brand-blue' : 'bg-brand-green',
-                                                    )}
-                                                />
-                                                {isStale ? 'Stale' : meta.cached ? 'Cached' : 'Live'}
-                                            </span>
+                                            <StatusBadge status={status} />
                                             <span>Updated {formatRelativeTime(meta.generatedAt)}</span>
                                         </>
                                     ) : (
@@ -162,7 +146,7 @@ export default function Leaderboard({ leaderboard }: Props) {
 
                             <footer className="border-border/70 text-muted-foreground mt-6 flex flex-col gap-2 border-t pt-4 text-[11px] sm:flex-row sm:items-center sm:justify-between">
                                 <span className="flex flex-wrap items-center gap-3">
-                                    {isStale ? <span className="font-medium text-[#8A4B00]">Showing last successful result</span> : null}
+                                    {isStale ? <span className="text-status-stale-text font-medium">Showing last successful result</span> : null}
                                     {meta ? (
                                         <span>
                                             Scanned {meta.scannedAffiliates} of {meta.totalAffiliates} affiliates

@@ -65,6 +65,12 @@ The Docker build context excludes `docs/` and other files that are not needed at
 
 Larastan was added as a dev dependency with a `phpstan.neon` configuration at level 7, a `scripts/phpstan.sh` runner, and a CI step. The first level-7 run found seven type/iterable findings in the Refersion client; the docblocks and helper parameter types were tightened until the analysis reported no errors.
 
+### 7. Clean-code follow-up
+
+> Keep it simple; implement the review suggestions without overengineering.
+
+The follow-up extracted only the seams that reduced real duplication or clarified intent: a shared `RefersionRetryPolicy`, a `LeaderboardEligibility` rule, explicit `get()`/`refresh()` methods instead of boolean flags, removal of the unused refresh FormRequest, a page-size cap, a small `StatusBadge` component, and presentation-only email formatting in React. Larger speculative abstractions were deliberately skipped.
+
 ---
 
 ## What the AI produced
@@ -94,6 +100,7 @@ The implementation was built and verified in this repository. The final verifica
 | The first container test run inherited the production environment, causing CSRF and cache-isolation failures. | PHPUnit environment values now use `force="true"`, and `scripts/test-container.sh` supplies the testing/array/in-memory settings needed by the containerized suite. |
 | A fresh-context final review found refresh-URL preservation, token-generation lifetime, `403` handling, token-endpoint transport handling, malformed-payload validation, stale-data presentation, and lock-duration issues. | Regression tests were added first, the implementation was corrected, and the full PHPUnit, Vitest, Docker, and build checks were rerun successfully. |
 | The first implementation had no PHP static analysis. | Larastan level 7 was added; seven initial findings were fixed and the check now runs in CI. |
+| The first implementation duplicated retry policy across the client and auth service and used boolean refresh flags. | The retry policy and eligibility rule were extracted, `get()`/`refresh()` became explicit, and the unused refresh request was removed without changing behavior. |
 
 ---
 
@@ -107,8 +114,8 @@ The implementation was built and verified in this repository. The final verifica
 - Confirmed commission values behave as integer minor units by summing an affiliate's conversions.
 - Inspected the public Refersion site's CSS variables and extracted the core palette.
 - No write requests were made to the Refersion account.
-- PHPUnit: 85 tests, 355 assertions.
-- Vitest: 11 tests.
+- PHPUnit: 108 tests, 386 assertions.
+- Vitest: 12 tests.
 - Larastan level 7 reports no errors.
 - `npm run build`, `npm run type-check`, ESLint, Prettier, and Pint all pass.
 - Docker image builds, the container healthcheck passes, and the PHPUnit suite passes inside the container.

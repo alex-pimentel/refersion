@@ -169,7 +169,7 @@
    - second call uses cache; force refresh rebuilds;
    - failed refresh preserves the previous cache entry.
 2. Implement `app/Services/Leaderboard/LeaderboardService.php`:
-   - `get(bool $forceRefresh = false): LeaderboardResult`
+   - `get(): LeaderboardResult` and `refresh(): LeaderboardResult`
    - sort, chunk, pool, filter, early exit;
    - cache key/TTL/lock;
    - meta timestamps and request counters.
@@ -199,10 +199,10 @@
    - refresh is throttled at 10/min;
    - `GET /health` returns 200 without calling Refersion.
 2. Implement `app/Http/Controllers/LeaderboardController.php`:
-   - `index()` uses `Inertia::defer(fn () => $this->buildPageData())`;
-   - `refresh()` forces a rebuild and renders the same page;
-   - `buildPageData()` catches domain exceptions, logs sanitized context, and returns the page payload.
-3. Implement `app/Http/Requests/LeaderboardRefreshRequest.php`.
+   - `index()` uses `Inertia::defer(fn () => $this->loadPageData(fn () => $this->leaderboard->get()))`;
+   - `refresh()` calls `LeaderboardService::refresh()` and renders the same page;
+   - `loadPageData()` catches domain exceptions, logs sanitized context, and returns the page payload.
+3. Keep the POST refresh route free of a request body; the route itself is the forced-refresh action.
 4. Replace `routes/web.php` with `/`, `/leaderboard/refresh`, and `/health`.
 5. Add the TypeScript page-payload types in `resources/js/types/leaderboard.ts`.
 

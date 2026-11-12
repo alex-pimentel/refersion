@@ -17,13 +17,13 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Sleep;
 use Throwable;
 
 class RefersionClient
 {
     public function __construct(
         private readonly RefersionAuthService $auth,
+        private readonly RefersionRetryPolicy $retry,
     ) {}
 
     /**
@@ -32,7 +32,7 @@ class RefersionClient
     public function listAllAffiliates(): array
     {
         $page = 1;
-        $limit = max(1, (int) config('services.refersion.page_limit', 100));
+        $limit = min(100, max(1, (int) config('services.refersion.page_limit', 100)));
         $maxPages = max(1, (int) config('services.refersion.max_pages', 500));
         $affiliates = [];
 
@@ -95,30 +95,19 @@ class RefersionClient
     }
 
     /**
-     * @return CustomField[]
-     */
-    public function getCustomFields(int $affiliateId): array
-    {
-        return $this->getCustomFieldsForMany([$affiliateId])[$affiliateId] ?? [];
-    }
-
-    /**
      * @param  array<string, int|string>  $query
      */
     private function request(string $path, array $query = []): Response
     {
         $auth = $this->auth->tokenWithGeneration();
-        $attempt = 0;
         $reauthAttempted = false;
 
-        while (true) {
-            $attempt++;
-
+        for ($attempt = 1; $attempt <= RefersionRetryPolicy::MAX_ATTEMPTS; $attempt++) {
             try {
                 $response = $this->http($auth['token'])->get($this->url($path), $query);
             } catch (ConnectionException $exception) {
-                if ($attempt <= 2) {
-                    $this->backoff($attempt);
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->backoff($attempt);
 
                     continue;
                 }
@@ -131,7 +120,7 @@ class RefersionClient
                 );
             }
 
-            if ($this->isAuthFailure($response) && ! $reauthAttempted) {
+            if ($this->retry->isAuthFailure($response) && ! $reauthAttempted) {
                 $this->auth->refresh($auth['generation']);
                 $auth = $this->auth->tokenWithGeneration();
                 $reauthAttempted = true;
@@ -140,10 +129,10 @@ class RefersionClient
             }
 
             if ($response->status() === 429) {
-                $retryAfter = $this->retryAfter($response);
+                $retryAfter = $this->retry->retryAfter($response);
 
-                if ($attempt <= 2) {
-                    Sleep::sleep(min(30, max(1, $retryAfter)));
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->sleepForRateLimit($retryAfter);
 
                     continue;
                 }
@@ -155,8 +144,8 @@ class RefersionClient
             }
 
             if ($response->serverError()) {
-                if ($attempt <= 2) {
-                    $this->backoff($attempt);
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->backoff($attempt);
 
                     continue;
                 }
@@ -167,7 +156,7 @@ class RefersionClient
                 );
             }
 
-            if ($this->isAuthFailure($response)) {
+            if ($this->retry->isAuthFailure($response)) {
                 throw new RefersionAuthenticationException(
                     'Refersion rejected the access token.',
                 );
@@ -182,6 +171,8 @@ class RefersionClient
 
             return $response;
         }
+
+        throw new RefersionApiException('Unable to complete the Refersion request.');
     }
 
     /**
@@ -191,12 +182,9 @@ class RefersionClient
     private function requestCustomFieldsChunk(array $affiliateIds): array
     {
         $auth = $this->auth->tokenWithGeneration();
-        $attempt = 0;
         $reauthAttempted = false;
 
-        while (true) {
-            $attempt++;
-
+        for ($attempt = 1; $attempt <= RefersionRetryPolicy::MAX_ATTEMPTS; $attempt++) {
             $responses = Http::pool(function (Pool $pool) use ($affiliateIds, $auth): void {
                 foreach ($affiliateIds as $affiliateId) {
                     $pool->as((string) $affiliateId)
@@ -208,10 +196,10 @@ class RefersionClient
                 }
             });
 
-            $hasAuthFailure = $this->hasAuthFailure($responses);
-            $hasRateLimit = $this->hasStatus($responses, 429);
-            $hasServerError = $this->hasServerError($responses);
-            $hasConnectionError = $this->hasConnectionError($responses);
+            $hasAuthFailure = $this->retry->hasAuthFailure($responses);
+            $hasRateLimit = $this->retry->hasStatus($responses, 429);
+            $hasServerError = $this->retry->hasServerError($responses);
+            $hasConnectionError = $this->retry->hasConnectionError($responses);
 
             if ($hasAuthFailure && ! $reauthAttempted) {
                 $this->auth->refresh($auth['generation']);
@@ -222,10 +210,10 @@ class RefersionClient
             }
 
             if ($hasRateLimit) {
-                $retryAfter = $this->maxRetryAfter($responses);
+                $retryAfter = $this->retry->maxRetryAfter($responses);
 
-                if ($attempt <= 2) {
-                    Sleep::sleep(min(30, max(1, $retryAfter)));
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->sleepForRateLimit($retryAfter);
 
                     continue;
                 }
@@ -237,8 +225,8 @@ class RefersionClient
             }
 
             if ($hasServerError || $hasConnectionError) {
-                if ($attempt <= 2) {
-                    $this->backoff($attempt);
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->backoff($attempt);
 
                     continue;
                 }
@@ -256,6 +244,8 @@ class RefersionClient
 
             return $this->mapCustomFieldResponses($responses);
         }
+
+        throw new RefersionApiException('Unable to complete the Refersion request.');
     }
 
     /**
@@ -414,104 +404,5 @@ class RefersionClient
     private function url(string $path): string
     {
         return rtrim((string) config('services.refersion.base_url'), '/').'/'.ltrim($path, '/');
-    }
-
-    private function retryAfter(Response $response): int
-    {
-        $header = $response->header('Retry-After');
-
-        if (is_numeric($header)) {
-            return max(0, (int) $header);
-        }
-
-        $body = $response->json();
-
-        if (is_array($body) && isset($body['retryAfter']) && is_numeric($body['retryAfter'])) {
-            return max(0, (int) $body['retryAfter']);
-        }
-
-        return 60;
-    }
-
-    /**
-     * @param  array<int|string, Response|Throwable>  $responses
-     */
-    private function maxRetryAfter(array $responses): int
-    {
-        $retryAfter = 1;
-
-        foreach ($responses as $response) {
-            if ($response instanceof Response && $response->status() === 429) {
-                $retryAfter = max($retryAfter, $this->retryAfter($response));
-            }
-        }
-
-        return $retryAfter;
-    }
-
-    private function isAuthFailure(Response $response): bool
-    {
-        return in_array($response->status(), [401, 403], true);
-    }
-
-    /**
-     * @param  array<int|string, Response|Throwable>  $responses
-     */
-    private function hasAuthFailure(array $responses): bool
-    {
-        foreach ($responses as $response) {
-            if ($response instanceof Response && $this->isAuthFailure($response)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<int|string, Response|Throwable>  $responses
-     */
-    private function hasStatus(array $responses, int $status): bool
-    {
-        foreach ($responses as $response) {
-            if ($response instanceof Response && $response->status() === $status) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<int|string, Response|Throwable>  $responses
-     */
-    private function hasServerError(array $responses): bool
-    {
-        foreach ($responses as $response) {
-            if ($response instanceof Response && $response->serverError()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<int|string, Response|Throwable>  $responses
-     */
-    private function hasConnectionError(array $responses): bool
-    {
-        foreach ($responses as $response) {
-            if (! $response instanceof Response) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function backoff(int $attempt): void
-    {
-        Sleep::usleep($attempt === 1 ? 250_000 : 750_000);
     }
 }

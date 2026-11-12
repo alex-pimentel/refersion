@@ -49,6 +49,13 @@ class DtoTest extends TestCase
         $this->assertSame('Affiliate #123', $affiliate->displayName());
     }
 
+    public function test_display_email_returns_an_empty_string_when_missing(): void
+    {
+        $affiliate = $this->affiliate(firstName: null, lastName: null, company: null, email: null);
+
+        $this->assertSame('', $affiliate->displayEmail());
+    }
+
     public function test_leaderboard_entry_serializes_expected_page_shape(): void
     {
         $entry = new LeaderboardEntry(

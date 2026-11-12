@@ -47,8 +47,6 @@ final readonly class AffiliateSummary
 
     public function displayEmail(): string
     {
-        $email = trim($this->email ?? '');
-
-        return $email !== '' ? $email : '—';
+        return trim($this->email ?? '');
     }
 }

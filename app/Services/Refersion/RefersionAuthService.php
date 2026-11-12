@@ -10,13 +10,15 @@ use App\Exceptions\RefersionMalformedResponseException;
 use App\Exceptions\RefersionRateLimitException;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Sleep;
 
 class RefersionAuthService
 {
+    public function __construct(
+        private readonly RefersionRetryPolicy $retry,
+    ) {}
+
     /**
      * @return array{token: string, generation: int}
      */
@@ -77,7 +79,7 @@ class RefersionAuthService
         });
     }
 
-    public function forget(): void
+    private function forget(): void
     {
         Cache::forget($this->cacheKey());
     }
@@ -142,7 +144,7 @@ class RefersionAuthService
             );
         }
 
-        for ($attempt = 1; $attempt <= 3; $attempt++) {
+        for ($attempt = 1; $attempt <= RefersionRetryPolicy::MAX_ATTEMPTS; $attempt++) {
             try {
                 $response = Http::asForm()
                     ->acceptJson()
@@ -154,8 +156,8 @@ class RefersionAuthService
                         'token_type' => (string) config('services.refersion.token_type', 'short_lived'),
                     ]);
             } catch (ConnectionException $exception) {
-                if ($attempt < 3) {
-                    $this->backoff($attempt);
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->backoff($attempt);
 
                     continue;
                 }
@@ -171,13 +173,13 @@ class RefersionAuthService
             if ($response->status() === 429) {
                 throw new RefersionRateLimitException(
                     'Refersion token endpoint is rate limited.',
-                    $this->retryAfter($response),
+                    $this->retry->retryAfter($response),
                 );
             }
 
             if ($response->serverError()) {
-                if ($attempt < 3) {
-                    $this->backoff($attempt);
+                if ($this->retry->shouldRetry($attempt)) {
+                    $this->retry->backoff($attempt);
 
                     continue;
                 }
@@ -215,28 +217,6 @@ class RefersionAuthService
         }
 
         throw new RefersionApiException('Unable to obtain a Refersion token.');
-    }
-
-    private function backoff(int $attempt): void
-    {
-        Sleep::usleep($attempt === 1 ? 250_000 : 750_000);
-    }
-
-    private function retryAfter(Response $response): int
-    {
-        $header = $response->header('Retry-After');
-
-        if (is_numeric($header)) {
-            return max(0, (int) $header);
-        }
-
-        $body = $response->json();
-
-        if (is_array($body) && isset($body['retryAfter']) && is_numeric($body['retryAfter'])) {
-            return max(0, (int) $body['retryAfter']);
-        }
-
-        return 60;
     }
 
     /**
