@@ -64,13 +64,14 @@ The Docker build context excludes `docs/` and other files that are not needed at
 ## What the AI produced
 
 - The design specification in `docs/superpowers/specs/2026-11-12-refersion-leaderboard-design.md`.
-- The project README.
-- The initial palette extraction and accessibility notes.
-- The proposed service/client/DTO/exception architecture.
-- The test matrix and verification checklist.
-- The Docker and CI strategy.
+- The project README and AI usage log.
+- The Laravel services, DTOs, exceptions, controller, routes, and configuration.
+- The React/Inertia leaderboard page and its loading, success, empty, error, and refresh states.
+- The PHPUnit and Vitest test suites.
+- The Docker multi-stage build, Compose stack, Nginx/Supervisor configuration, entrypoint, and healthcheck.
+- The GitHub Actions CI workflow.
 
-The application code, Docker configuration, and automated tests are the next implementation milestone. They were not generated in this documentation-only commit.
+The implementation was built and verified in this repository. The final verification is summarized below.
 
 ---
 
@@ -83,10 +84,11 @@ The application code, Docker configuration, and automated tests are the next imp
 | A naive eligibility check might trim or lowercase the custom-field value. | The sample data includes `true`, `TRUE ` (trailing space), `TRU`, and `TRUe`. The design uses strict, exact string comparison. |
 | An initial palette pass included testimonial logo colors. | Those colors belong to customer logos, not the Refersion brand. The README and spec distinguish core brand tokens from decorative/customer colors. |
 | A first README draft used submission-oriented language. | It was rewritten as a clear example-project README, per the project owner's instruction. |
+| The first container test run inherited the production environment, causing CSRF and cache-isolation failures. | PHPUnit environment values now use `force="true"`, and `scripts/test-container.sh` supplies the testing/array/in-memory settings needed by the containerized suite. |
 
 ---
 
-## Verification performed during this phase
+## Verification performed
 
 - Read-only authentication against the Refersion sample account.
 - Confirmed the list endpoint returns `data` and supports `page`/`limit`.
@@ -96,14 +98,18 @@ The application code, Docker configuration, and automated tests are the next imp
 - Confirmed commission values behave as integer minor units by summing an affiliate's conversions.
 - Inspected the public Refersion site's CSS variables and extracted the core palette.
 - No write requests were made to the Refersion account.
-
-The automated test suite will verify the implementation without network access using `Http::fake()`.
+- PHPUnit: 67 tests, 292 assertions.
+- Vitest: 8 tests.
+- `npm run build`, `npm run type-check`, ESLint, and Pint all pass.
+- Docker image builds, the container healthcheck passes, and the PHPUnit suite passes inside the container.
+- Live read-only smoke test through the container returned the expected top five: Lily Kertzmann, Clark Rolfson, Peter Bosco, Chauncey Hartmann, and Mitchel Ortiz. It scanned 13 of 44 affiliates and made 20 custom-field requests.
+- The automated suite uses `Http::fake()` and does not require network access or real credentials.
 
 ---
 
 ## Human review
 
-The project owner decides the final architecture, reviews the specification and README, and remains responsible for the implementation. AI output is treated as a draft: it is checked against the API documentation, the sample data, and the automated tests before it is accepted.
+The project owner set the scope, stack direction, and presentation requirements. The implementation was generated with AI assistance and verified against the API documentation, a live read-only smoke test, the Docker runtime, and the automated test suites. The project owner remains responsible for the final code and for any changes made after this log.
 
 ---
 
@@ -112,4 +118,5 @@ The project owner decides the final architecture, reviews the specification and 
 - No API credentials are committed.
 - No access tokens are written to logs, documentation, or Git history.
 - The live API calls used for verification were read-only.
-- The final implementation must keep secrets in `.env` and sanitize all upstream errors before they reach the UI.
+- The implementation keeps secrets in `.env` and sanitizes upstream errors before they reach the UI.
+- The Docker build context excludes `docs/`, `.env`, `README.md`, `AI_USAGE.md`, and repository metadata.

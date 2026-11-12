@@ -1,14 +1,8 @@
-name: tests
+name: CI
 
 on:
   push:
-    branches:
-      - develop
-      - main
   pull_request:
-    branches:
-      - develop
-      - main
 
 jobs:
   ci:
@@ -21,9 +15,9 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: '8.4'
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,23 +25,41 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Build Assets
-        run: npm run build
-
-      - name: Create SQLite Database
-        run: touch database/database.sqlite
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Copy Environment File
+      - name: Copy environment
         run: cp .env.example .env
 
-      - name: Generate Application Key
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
         run: php artisan key:generate
 
-      - name: Tests
-        run: ./vendor/bin/phpunit
+      - name: Prepare SQLite database
+        run: touch database/database.sqlite
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run PHP tests
+        run: php artisan test
+
+      - name: Check PHP formatting
+        run: ./vendor/bin/pint --test
+
+      - name: Check frontend formatting
+        run: npm run format:check
+
+      - name: Lint frontend
+        run: npm run lint:check
+
+      - name: Type-check frontend
+        run: npm run type-check
+
+      - name: Run frontend tests
+        run: npm test

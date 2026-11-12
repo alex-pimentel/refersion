@@ -1,1 +1,3 @@
-resources/js/components/ui/*
+public/build/
+node_modules/
+vendor/

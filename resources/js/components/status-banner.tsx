@@ -20,11 +20,7 @@ export function StatusBanner({
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                     <p className="font-medium">{message}</p>
-                    {reference ? (
-                        <p className="mt-1 font-mono text-[11px] text-[#B42318]/75">
-                            Reference: {reference}
-                        </p>
-                    ) : null}
+                    {reference ? <p className="mt-1 font-mono text-[11px] text-[#B42318]/75">Reference: {reference}</p> : null}
                 </div>
             </div>
             <button

@@ -202,7 +202,7 @@ The page keeps the last successful data visible when a refresh fails (client-sid
 
 ### 6.10 Include a test target in the Docker image
 
-**Decision:** The runtime image installs Composer dev dependencies so `docker compose exec app php artisan test` works exactly as documented.
+**Decision:** The runtime image installs Composer dev dependencies so the container can run the PHPUnit suite through `bash scripts/test-container.sh`.
 
 **Trade-off:** The image is larger than a production-only image. For this example project, verifiability is more important than image size. A production multi-stage `--no-dev` target can be added later.
 
@@ -761,7 +761,7 @@ These values come from the live site's custom theme variables and inline styles.
 │  │ 5   ● Mitchel Ortiz         mitchel@...    $4,772.34  │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  ● Cached · Updated 2 min ago · Scanned 20 of 44            │
+│  ● Cached · Updated 2 min ago · Scanned 13 of 44            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -895,18 +895,18 @@ No public database port. No Redis service in the default stack.
 1. `set -euo pipefail`
 2. `cd /var/www/html`
 3. Create `.env` from `.env.example` if missing.
-4. If `APP_KEY` is empty, run `php artisan key:generate --force`.
+4. If `APP_KEY` is empty, run `php artisan key:generate --force`, read the generated key from `.env`, and export it so PHP-FPM inherits it.
 5. `mkdir -p database && touch database/database.sqlite`
 6. `chown -R www-data:www-data storage bootstrap/cache database`
 7. `php artisan migrate --force --no-interaction`
-8. `php artisan config:cache`
-9. `php artisan route:cache`
-10. `php artisan view:cache`
+8. `php artisan route:cache`
+9. `php artisan view:cache`
+10. `chown -R www-data:www-data storage bootstrap/cache database`
 11. `exec "$@"` → Supervisor starts Nginx + PHP-FPM.
 
 Notes:
 
-- Config/route/view caches keep the container fast.
+- Route and view caches keep the container fast. Config is intentionally read at runtime rather than cached, so the containerized test wrapper can override the production environment with `APP_ENV=testing` and the array/in-memory test settings.
 - Migrations at startup are acceptable for a single-container demo. For production, run migrations as a separate release job.
 - If the SQLite volume is wiped, the app re-creates the schema and refetches from Refersion.
 
@@ -965,7 +965,7 @@ docker compose up --build
 open http://localhost:8080
 
 # Tests
-docker compose exec app php artisan test
+bash scripts/test-container.sh
 
 # Formatting
 docker compose exec app ./vendor/bin/pint --test
@@ -1087,7 +1087,7 @@ Optional `Makefile` targets: `setup`, `up`, `down`, `test`, `lint`, `build`.
 6. Click "Refresh data"; observe spinner/skeleton, then the same data with an updated timestamp.
 7. Stop network/API credentials or set an invalid secret; refresh and verify the friendly error banner with a reference code, not a stack trace.
 8. Restart the container; confirm the cache persists via the SQLite volume and the page loads without an immediate API call (check logs).
-9. `docker compose exec app php artisan test` — all green.
+9. `bash scripts/test-container.sh` — all green.
 10. `docker compose exec app ./vendor/bin/pint --test` — clean.
 11. Run a final `npm run build` and `php artisan test` on the host or in CI.
 12. Scan the staged files and Git history for credentials before pushing.

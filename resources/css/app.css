@@ -7,11 +7,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans:
-        'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-display:
-        'Manrope Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Manrope Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
     --color-brand-ink: #221f4e;
     --color-brand-blue: #3a86ff;
@@ -99,7 +96,7 @@
     }
 
     body {
-        @apply bg-background font-sans text-foreground antialiased;
+        @apply bg-background text-foreground font-sans antialiased;
     }
 
     h1,
@@ -117,12 +114,7 @@
     }
 
     .skeleton-shimmer {
-        background: linear-gradient(
-            90deg,
-            rgba(222, 215, 212, 0.55) 25%,
-            rgba(242, 246, 239, 0.95) 50%,
-            rgba(222, 215, 212, 0.55) 75%
-        );
+        background: linear-gradient(90deg, rgba(222, 215, 212, 0.55) 25%, rgba(242, 246, 239, 0.95) 50%, rgba(222, 215, 212, 0.55) 75%);
         background-size: 200% 100%;
         animation: shimmer 1.6s ease-in-out infinite;
     }

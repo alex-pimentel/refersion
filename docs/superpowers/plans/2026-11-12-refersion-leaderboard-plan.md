@@ -265,14 +265,14 @@
    - `docker compose build`
    - `docker compose up -d`
    - `curl -fsS http://localhost:8080/health`
-   - `docker compose exec app php artisan test`
+   - `bash scripts/test-container.sh`
 6. Fix ownership, cache, and migration issues until the flow is reliable.
 
 **Tests / verification**
 
 - `docker compose build`
 - `curl -fsS http://localhost:8080/health`
-- `docker compose exec app php artisan test`
+- `bash scripts/test-container.sh`
 - `docker compose exec app ./vendor/bin/pint --test`
 
 **Expected:** Container healthy; health endpoint returns 200; full suite green inside the container.

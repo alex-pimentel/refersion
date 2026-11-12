@@ -2,7 +2,7 @@
 
 A Dockerized Laravel + React example project that builds a leaderboard of the top five affiliates by lifetime commission using the Refersion API.
 
-> **Project status:** The specification and architecture are complete. The Laravel/React application, Docker setup, and automated test suite are the next implementation milestone. The full design is in [`docs/superpowers/specs/2026-11-12-refersion-leaderboard-design.md`](docs/superpowers/specs/2026-11-12-refersion-leaderboard-design.md).
+The full design and architectural rationale are in [`docs/superpowers/specs/2026-11-12-refersion-leaderboard-design.md`](docs/superpowers/specs/2026-11-12-refersion-leaderboard-design.md).
 
 ---
 
@@ -60,7 +60,7 @@ It is intentionally small in scope but production-minded in the areas that matte
 │  │ 5   Mitchel Ortiz          mitchel@example.com $4,772.34     │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                    │
-│  ● Cached · Updated 2 min ago · Scanned 20 of 44 affiliates        │
+│  ● Cached · Updated 2 min ago · Scanned 13 of 44 affiliates        │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -203,15 +203,13 @@ The sample data also contains near-matches such as `true`, `TRUE ` (trailing spa
 | Styling | Tailwind CSS 4 |
 | Build | Vite |
 | Cache/locks | Laravel database cache backed by SQLite |
-| Tests | Pest (or PHPUnit if the Laravel skeleton uses it) |
-| Container | Docker multi-stage build, Nginx + PHP-FPM |
+| Tests | PHPUnit 11, Vitest, React Testing Library |
+| Container | Docker multi-stage build, Nginx + PHP-FPM + Supervisor, SQLite volume |
 | CI | GitHub Actions |
 
 ---
 
 ## Getting started
-
-> The first milestone in this repository is the design and documentation. The commands below describe the target developer experience for the application implementation.
 
 ### Prerequisites
 
@@ -226,16 +224,24 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open [http://localhost:8080](http://localhost:8080).
+Open [http://localhost:8080](http://localhost:8080). The container runs migrations automatically and is healthy when `GET /health` returns `{"status":"ok"}`.
 
 ### Useful commands
 
 ```bash
-# Run the automated test suite
-docker compose exec app php artisan test
+# Run the full PHP suite inside the running container
+bash scripts/test-container.sh
+
+# Run the PHP suite through the Composer Docker image (no app container)
+bash scripts/test.sh
 
 # Check PHP formatting
 docker compose exec app ./vendor/bin/pint --test
+
+# Run the frontend tests, type-check, and production build
+npm test
+npm run type-check
+npm run build
 
 # Stop the stack
 docker compose down
@@ -244,15 +250,25 @@ docker compose down
 docker compose down -v
 ```
 
+### Docker runtime
+
+The image is built in three stages:
+
+1. **Assets** — installs Node dependencies and builds the Vite bundle.
+2. **Vendor** — installs Composer dependencies, including the dev dependencies needed to run the test suite inside the final image.
+3. **Runtime** — PHP 8.4-FPM, Nginx, Supervisor, SQLite support, and the built application assets.
+
+The container stores the SQLite cache in a named volume, runs migrations at startup, caches routes and views, and exposes a `/health` endpoint for the Compose healthcheck. The test wrapper overrides the production environment with the testing/array/in-memory settings required by the suite.
+
 ---
 
 ## Testing
 
-The automated suite is designed around Laravel's HTTP fake and does not call the real Refersion API. Fixtures are synthetic and anonymized; no live affiliate PII or credentials are committed.
+The automated suite uses Laravel's HTTP fake and does not call the real Refersion API. Fixtures are synthetic and anonymized; no live affiliate PII or credentials are committed.
 
-Planned coverage:
+Coverage:
 
-- Token exchange, reuse, expiry, and refresh-on-401.
+- Token exchange, reuse, expiry, single-flight refresh, and refresh-on-401.
 - Multi-page affiliate pagination and the exact stopping condition.
 - Strict custom-field eligibility, including near-match decoys.
 - Descending commission ordering, ties, and the top-five cut.
@@ -263,8 +279,11 @@ Planned coverage:
 - Currency formatting and UI state rendering.
 
 ```bash
-docker compose exec app php artisan test
+bash scripts/test-container.sh
+bash scripts/test.sh
 docker compose exec app ./vendor/bin/pint --test
+npm test
+npm run type-check
 ```
 
 GitHub Actions runs the same checks on every push and pull request.
@@ -286,22 +305,28 @@ config/
   services.php
 resources/
   css/app.css
-  js/Pages/Leaderboard.tsx
-  js/Components/
+  js/pages/leaderboard.tsx
+  js/components/
   js/lib/
+  js/test/
   js/types/
 routes/
   web.php
 tests/
-  Unit/
   Feature/
+  Unit/
 docker/
-  nginx.conf
-  supervisord.conf
   entrypoint.sh
+  nginx.conf
+  php.ini
+  supervisord.conf
 docs/
   superpowers/specs/
+scripts/
 .github/workflows/
+Dockerfile
+docker-compose.yml
+vitest.config.ts
 ```
 
 The complete file layout, contracts, and test matrix are in the design document.
@@ -328,7 +353,7 @@ The live API returns integer values that sum exactly from conversion records and
 
 ### Synchronous refresh
 
-The first implementation builds the leaderboard during the request, with a short cache TTL and a spinner in the UI. This keeps the project easy to run and reason about. For large accounts with sparse eligibility, the synchronous path is bounded by `REFERSION_MAX_CANDIDATES` and returns an explicit error rather than an incomplete leaderboard. The next step is a queued job with progress reporting, shared pacing, and a scheduled refresh.
+The current implementation builds the leaderboard during the request, with a short cache TTL and a spinner in the UI. This keeps the project easy to run and reason about. For large accounts with sparse eligibility, the synchronous path is bounded by `REFERSION_MAX_CANDIDATES` and returns an explicit error rather than an incomplete leaderboard. The next step is a queued job with progress reporting, shared pacing, and a scheduled refresh.
 
 ### Friendly error state over a raw 5xx page
 
@@ -373,7 +398,7 @@ Accessible application variants are defined in the design document, including a 
 
 ## AI-assisted development
 
-AI tools were used to analyze the Refersion API, validate the integration strategy, inspect the public brand styles, and draft the specification. The implementation is expected to be reviewed, tested, and adjusted by the maintainers rather than accepted blindly.
+AI tools were used to analyze the Refersion API, validate the integration strategy, inspect the public brand styles, and draft the specification. The resulting implementation was reviewed and verified with the automated suite, the Docker healthcheck, and a live read-only smoke test against the sample account.
 
 See [`AI_USAGE.md`](AI_USAGE.md) for the tools, prompts, tasks, and verification notes.
 
@@ -381,13 +406,13 @@ See [`AI_USAGE.md`](AI_USAGE.md) for the tools, prompts, tasks, and verification
 
 ## Roadmap
 
-- [ ] Scaffold Laravel + React/Inertia and Tailwind.
-- [ ] Implement the Refersion auth, client, and leaderboard services.
-- [ ] Add the Docker multi-stage build and Compose stack.
-- [ ] Build the leaderboard UI and all UI states.
-- [ ] Add the Pest test suite and GitHub Actions workflow.
-- [ ] Verify the Docker flow and the sample-account output end to end.
-- [ ] Update this README with a screenshot and final setup notes.
+- [x] Scaffold Laravel + React/Inertia and Tailwind.
+- [x] Implement the Refersion auth, client, and leaderboard services.
+- [x] Add the Docker multi-stage build and Compose stack.
+- [x] Build the leaderboard UI and all UI states.
+- [x] Add the PHPUnit/Vitest test suites and GitHub Actions workflow.
+- [x] Verify the Docker flow and the sample-account output end to end.
+- [ ] Add a screenshot or short screen recording to this README.
 - [ ] Move cache/locks to Redis and add a queued refresh for larger deployments.
 - [ ] Add webhook-driven cache invalidation.
 - [ ] Add production authentication/SSO and observability.

@@ -53,10 +53,7 @@ export default function Leaderboard({ leaderboard }: Props) {
                 preserveScroll: true,
                 onStart: () => setRefreshing(true),
                 onFinish: () => setRefreshing(false),
-                onError: () =>
-                    setTransportError(
-                        'We could not reach the server. Please check your connection and try again.',
-                    ),
+                onError: () => setTransportError('We could not reach the server. Please check your connection and try again.'),
             },
         );
     };
@@ -64,26 +61,22 @@ export default function Leaderboard({ leaderboard }: Props) {
     return (
         <>
             <Head title="Top Affiliates" />
-            <div className="page-atmosphere min-h-screen bg-background">
-                <header className="relative overflow-hidden bg-brand-ink text-white">
-                    <div className="pointer-events-none absolute -top-24 right-[-8rem] h-80 w-80 rounded-full bg-brand-blue/25 blur-3xl" />
-                    <div className="pointer-events-none absolute bottom-[-10rem] left-[-6rem] h-80 w-80 rounded-full bg-brand-green/15 blur-3xl" />
+            <div className="page-atmosphere bg-background min-h-screen">
+                <header className="bg-brand-ink relative overflow-hidden text-white">
+                    <div className="bg-brand-blue/25 pointer-events-none absolute -top-24 right-[-8rem] h-80 w-80 rounded-full blur-3xl" />
+                    <div className="bg-brand-green/15 pointer-events-none absolute bottom-[-10rem] left-[-6rem] h-80 w-80 rounded-full blur-3xl" />
                     <div className="relative mx-auto max-w-5xl px-5 pt-8 pb-24 sm:px-8">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
-                                    <Trophy className="h-5 w-5 text-brand-green" />
+                                    <Trophy className="text-brand-green h-5 w-5" />
                                 </span>
                                 <div>
-                                    <p className="text-[11px] font-semibold tracking-[0.28em] text-white/55 uppercase">
-                                        Refersion
-                                    </p>
-                                    <p className="text-sm font-medium text-white/80">
-                                        Affiliate program
-                                    </p>
+                                    <p className="text-[11px] font-semibold tracking-[0.28em] text-white/55 uppercase">Refersion</p>
+                                    <p className="text-sm font-medium text-white/80">Affiliate program</p>
                                 </div>
                             </div>
-                            <span className="rounded-full bg-brand-green px-3 py-1 text-[11px] font-bold tracking-wide text-[#14532D] uppercase">
+                            <span className="bg-brand-green rounded-full px-3 py-1 text-[11px] font-bold tracking-wide text-[#14532D] uppercase">
                                 Top 5
                             </span>
                         </div>
@@ -94,57 +87,38 @@ export default function Leaderboard({ leaderboard }: Props) {
                                     Top affiliates leaderboard
                                 </h1>
                                 <p className="mt-3 text-sm leading-6 text-white/70">
-                                    Ranked by lifetime total commission. Only affiliates opted in
-                                    with the{' '}
-                                    <span className="font-semibold text-brand-green">
-                                        Display in leaderboard
-                                    </span>{' '}
-                                    custom field are eligible.
+                                    Ranked by lifetime total commission. Only affiliates opted in with the{' '}
+                                    <span className="text-brand-green font-semibold">Display in leaderboard</span> custom field are eligible.
                                 </p>
                             </div>
-                            <RefreshButton
-                                loading={refreshing}
-                                disabled={loading}
-                                onClick={refresh}
-                            />
+                            <RefreshButton loading={refreshing} disabled={loading} onClick={refresh} />
                         </div>
                     </div>
                 </header>
 
                 <main className="relative mx-auto -mt-14 max-w-5xl px-4 pb-16 sm:px-6">
-                    <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_24px_80px_-32px_rgba(34,31,78,0.35)]">
-                        <div className="h-1 w-full bg-gradient-to-r from-brand-green via-brand-blue to-brand-orange" />
+                    <section className="border-border bg-card overflow-hidden rounded-3xl border shadow-[0_24px_80px_-32px_rgba(34,31,78,0.35)]">
+                        <div className="from-brand-green via-brand-blue to-brand-orange h-1 w-full bg-gradient-to-r" />
                         <div className="p-5 sm:p-8">
-                            <div className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="border-border/70 flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                    <h2 className="font-display text-lg font-semibold text-foreground">
-                                        Lifetime commission leaders
-                                    </h2>
-                                    <p className="mt-1 text-sm text-muted-foreground">
+                                    <h2 className="font-display text-foreground text-lg font-semibold">Lifetime commission leaders</h2>
+                                    <p className="text-muted-foreground mt-1 text-sm">
                                         {meta
                                             ? `Showing ${data.length} eligible affiliate${data.length === 1 ? '' : 's'}`
                                             : 'Loading the latest affiliate performance'}
                                     </p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
                                     {meta ? (
                                         <>
                                             <span
                                                 className={cn(
                                                     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
-                                                    meta.cached
-                                                        ? 'bg-[#EAF2FF] text-[#1D4ED8]'
-                                                        : 'bg-[#EAF9EC] text-[#14532D]',
+                                                    meta.cached ? 'bg-[#EAF2FF] text-[#1D4ED8]' : 'bg-[#EAF9EC] text-[#14532D]',
                                                 )}
                                             >
-                                                <span
-                                                    className={cn(
-                                                        'h-1.5 w-1.5 rounded-full',
-                                                        meta.cached
-                                                            ? 'bg-brand-blue'
-                                                            : 'bg-brand-green',
-                                                    )}
-                                                />
+                                                <span className={cn('h-1.5 w-1.5 rounded-full', meta.cached ? 'bg-brand-blue' : 'bg-brand-green')} />
                                                 {meta.cached ? 'Cached' : 'Live'}
                                             </span>
                                             <span>Updated {formatRelativeTime(meta.generatedAt)}</span>
@@ -169,27 +143,19 @@ export default function Leaderboard({ leaderboard }: Props) {
                             <div className="mt-5">
                                 {loading ? <SkeletonTable /> : null}
                                 {showFullError && activeError ? (
-                                    <ErrorState
-                                        message={activeError.message}
-                                        reference={activeError.reference}
-                                        onRetry={refresh}
-                                    />
+                                    <ErrorState message={activeError.message} reference={activeError.reference} onRetry={refresh} />
                                 ) : null}
                                 {showEmpty ? <EmptyState onRefresh={refresh} /> : null}
                                 {showTable ? <LeaderboardTable entries={data} /> : null}
                             </div>
 
-                            <footer className="mt-6 flex flex-col gap-2 border-t border-border/70 pt-4 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                            <footer className="border-border/70 text-muted-foreground mt-6 flex flex-col gap-2 border-t pt-4 text-[11px] sm:flex-row sm:items-center sm:justify-between">
                                 <span>
-                                    Eligibility:{' '}
-                                    <span className="font-mono text-foreground">
-                                        Display in leaderboard = TRUE
-                                    </span>
+                                    Eligibility: <span className="text-foreground font-mono">Display in leaderboard = TRUE</span>
                                 </span>
                                 {meta ? (
                                     <span>
-                                        Scanned {meta.scannedAffiliates} of{' '}
-                                        {meta.totalAffiliates} affiliates
+                                        Scanned {meta.scannedAffiliates} of {meta.totalAffiliates} affiliates
                                     </span>
                                 ) : null}
                             </footer>
