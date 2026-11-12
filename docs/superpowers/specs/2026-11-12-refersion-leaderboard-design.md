@@ -100,18 +100,20 @@ A sample Refersion account was inspected during specification:
 
 | Rank | Affiliate ID | Name | Lifetime commission (cents) | Display |
 |---:|---:|---|---:|---:|
-| 1 | 8572722 | Lily Kertzmann | 702513 | $7,025.13 |
-| 2 | 8572717 | Clark Rolfson | 574870 | $5,748.70 |
-| 3 | 8572699 | Peter Bosco | 572666 | $5,726.66 |
-| 4 | 8572735 | Chauncey Hartmann | 562730 | $5,627.30 |
-| 5 | 8572728 | Mitchel Ortiz | 477234 | $4,772.34 |
+| 1 | 8572722 | Avery Cole | 702513 | $7,025.13 |
+| 2 | 8572717 | Jordan Blake | 574870 | $5,748.70 |
+| 3 | 8572699 | Morgan Reed | 572666 | $5,726.66 |
+| 4 | 8572735 | Casey Ellis | 562730 | $5,627.30 |
+| 5 | 8572728 | Riley Chen | 477234 | $4,772.34 |
+
+Names in this document and in the automated fixtures are fictional aliases. The affiliate IDs and commission values are retained as verification fixtures; live affiliate emails and credentials are never committed.
 
 Additional edge cases from the sample data:
 
-- ID `8572714` (Stevie Marquardt) has value `"TRUE "` with trailing whitespace and **must not** be eligible.
-- ID `8572734` (Karelle Huels) has value `"true"` and **must not** be eligible.
-- ID `8572733` (Caden Bode) has value `"false"` and **must not** be eligible.
-- ID `8572702` (Adelbert Green) has value `"no"` and **must not** be eligible.
+- ID `8572714` (Taylor Quinn) has value `"TRUE "` with trailing whitespace and **must not** be eligible.
+- ID `8572734` (Jamie Park) has value `"true"` and **must not** be eligible.
+- ID `8572733` (Drew Morgan) has value `"false"` and **must not** be eligible.
+- ID `8572702` (Robin Hayes) has value `"no"` and **must not** be eligible.
 
 These values should be represented in the automated test suite, not fetched during tests.
 
@@ -459,7 +461,7 @@ Read budget is 300 GET/min. The algorithm's expected budget for the live account
 
 - 1 list request (44 affiliates fit in one page at limit 100).
 - Chunk 1: top 10 affiliates → 4 eligible found.
-- Chunk 2: next 10 affiliates → 5th eligible found (Mitchel Ortiz).
+- Chunk 2: next 10 affiliates → 5th eligible found (Riley Chen).
 - Total: **1 + 20 = 21 GET requests**, versus 45 for a naive implementation.
 
 **Sparse-eligibility and large-account policy**
@@ -754,11 +756,11 @@ These values come from the live site's custom theme variables and inline styles.
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │ #   Affiliate              Email          Lifetime    │  │
-│  │ 1   ● Lily Kertzmann        lily@...       $7,025.13  │  │
-│  │ 2   ● Clark Rolfson         clark@...      $5,748.70  │  │
-│  │ 3   ● Peter Bosco           peter@...      $5,726.66  │  │
-│  │ 4   ● Chauncey Hartmann     chauncey@...   $5,627.30  │  │
-│  │ 5   ● Mitchel Ortiz         mitchel@...    $4,772.34  │  │
+│  │ 1   ● Avery Cole        lily@...       $7,025.13  │  │
+│  │ 2   ● Jordan Blake         clark@...      $5,748.70  │  │
+│  │ 3   ● Morgan Reed           peter@...      $5,726.66  │  │
+│  │ 4   ● Casey Ellis     chauncey@...   $5,627.30  │  │
+│  │ 5   ● Riley Chen         mitchel@...    $4,772.34  │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ● Cached · Updated 2 min ago · Scanned 13 of 44            │
@@ -940,6 +942,7 @@ REFERSION_PAGE_LIMIT=100
 REFERSION_CUSTOM_FIELDS_CHUNK=10
 REFERSION_LEADERBOARD_SIZE=5
 REFERSION_LEADERBOARD_CACHE_TTL=300
+REFERSION_LEADERBOARD_LOCK_TTL=600
 REFERSION_COMMISSION_UNIT=cents
 REFERSION_MAX_PAGES=500
 REFERSION_MAX_CANDIDATES=1000
@@ -1083,7 +1086,7 @@ Optional `Makefile` targets: `setup`, `up`, `down`, `test`, `lint`, `build`.
 2. `docker compose up --build`.
 3. Open `http://localhost:8080`.
 4. Verify the expected top five order and amounts from §5.3.
-5. Verify Stevie Marquardt (`"TRUE "`) is absent.
+5. Verify Taylor Quinn (`"TRUE "`) is absent.
 6. Click "Refresh data"; observe spinner/skeleton, then the same data with an updated timestamp.
 7. Stop network/API credentials or set an invalid secret; refresh and verify the friendly error banner with a reference code, not a stack trace.
 8. Restart the container; confirm the cache persists via the SQLite volume and the page loads without an immediate API call (check logs).

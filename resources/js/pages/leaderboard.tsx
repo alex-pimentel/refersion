@@ -35,9 +35,10 @@ export default function Leaderboard({ leaderboard }: Props) {
                   reference: '',
               }
             : null);
-    const data = activeError ? (lastGood?.data ?? []) : (leaderboard?.data ?? []);
-    const meta = activeError ? (lastGood?.meta ?? null) : (leaderboard?.meta ?? null);
+    const data = leaderboard?.data?.length ? leaderboard.data : activeError ? (lastGood?.data ?? []) : (leaderboard?.data ?? []);
+    const meta = leaderboard?.meta ?? (activeError ? (lastGood?.meta ?? null) : null);
     const hasData = data.length > 0;
+    const isStale = activeError !== null && hasData;
     const showFullError = activeError !== null && !hasData;
     const showEmpty = !loading && !activeError && data.length === 0;
     const showTable = !loading && hasData;
@@ -51,6 +52,7 @@ export default function Leaderboard({ leaderboard }: Props) {
             {
                 preserveState: true,
                 preserveScroll: true,
+                preserveUrl: true,
                 onStart: () => setRefreshing(true),
                 onFinish: () => setRefreshing(false),
                 onError: () => setTransportError('We could not reach the server. Please check your connection and try again.'),
@@ -115,11 +117,20 @@ export default function Leaderboard({ leaderboard }: Props) {
                                             <span
                                                 className={cn(
                                                     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
-                                                    meta.cached ? 'bg-[#EAF2FF] text-[#1D4ED8]' : 'bg-[#EAF9EC] text-[#14532D]',
+                                                    isStale
+                                                        ? 'bg-[#FFF5E2] text-[#8A4B00]'
+                                                        : meta.cached
+                                                          ? 'bg-[#EAF2FF] text-[#1D4ED8]'
+                                                          : 'bg-[#EAF9EC] text-[#14532D]',
                                                 )}
                                             >
-                                                <span className={cn('h-1.5 w-1.5 rounded-full', meta.cached ? 'bg-brand-blue' : 'bg-brand-green')} />
-                                                {meta.cached ? 'Cached' : 'Live'}
+                                                <span
+                                                    className={cn(
+                                                        'h-1.5 w-1.5 rounded-full',
+                                                        isStale ? 'bg-brand-orange' : meta.cached ? 'bg-brand-blue' : 'bg-brand-green',
+                                                    )}
+                                                />
+                                                {isStale ? 'Stale' : meta.cached ? 'Cached' : 'Live'}
                                             </span>
                                             <span>Updated {formatRelativeTime(meta.generatedAt)}</span>
                                         </>
@@ -150,14 +161,14 @@ export default function Leaderboard({ leaderboard }: Props) {
                             </div>
 
                             <footer className="border-border/70 text-muted-foreground mt-6 flex flex-col gap-2 border-t pt-4 text-[11px] sm:flex-row sm:items-center sm:justify-between">
-                                <span>
-                                    Eligibility: <span className="text-foreground font-mono">Display in leaderboard = TRUE</span>
+                                <span className="flex flex-wrap items-center gap-3">
+                                    {isStale ? <span className="font-medium text-[#8A4B00]">Showing last successful result</span> : null}
+                                    {meta ? (
+                                        <span>
+                                            Scanned {meta.scannedAffiliates} of {meta.totalAffiliates} affiliates
+                                        </span>
+                                    ) : null}
                                 </span>
-                                {meta ? (
-                                    <span>
-                                        Scanned {meta.scannedAffiliates} of {meta.totalAffiliates} affiliates
-                                    </span>
-                                ) : null}
                             </footer>
                         </div>
                     </section>

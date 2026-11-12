@@ -56,9 +56,12 @@ class LeaderboardController extends Controller
         } catch (RefersionApiException|LeaderboardBusyException $exception) {
             $this->logFailure($exception);
 
+            $cached = $this->leaderboard->cached();
+            $cachedPayload = $cached?->toArray();
+
             return [
-                'data' => [],
-                'meta' => null,
+                'data' => $cachedPayload['data'] ?? [],
+                'meta' => $cachedPayload['meta'] ?? null,
                 'error' => [
                     'message' => $this->errorMessage($exception),
                     'reference' => $exception->reference,

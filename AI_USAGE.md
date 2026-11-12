@@ -85,6 +85,7 @@ The implementation was built and verified in this repository. The final verifica
 | An initial palette pass included testimonial logo colors. | Those colors belong to customer logos, not the Refersion brand. The README and spec distinguish core brand tokens from decorative/customer colors. |
 | A first README draft used submission-oriented language. | It was rewritten as a clear example-project README, per the project owner's instruction. |
 | The first container test run inherited the production environment, causing CSRF and cache-isolation failures. | PHPUnit environment values now use `force="true"`, and `scripts/test-container.sh` supplies the testing/array/in-memory settings needed by the containerized suite. |
+| A fresh-context final review found refresh-URL preservation, token-generation lifetime, `403` handling, token-endpoint transport handling, malformed-payload validation, stale-data presentation, and lock-duration issues. | Regression tests were added first, the implementation was corrected, and the full PHPUnit, Vitest, Docker, and build checks were rerun successfully. |
 
 ---
 
@@ -98,12 +99,13 @@ The implementation was built and verified in this repository. The final verifica
 - Confirmed commission values behave as integer minor units by summing an affiliate's conversions.
 - Inspected the public Refersion site's CSS variables and extracted the core palette.
 - No write requests were made to the Refersion account.
-- PHPUnit: 67 tests, 292 assertions.
-- Vitest: 8 tests.
+- PHPUnit: 85 tests, 355 assertions.
+- Vitest: 11 tests.
 - `npm run build`, `npm run type-check`, ESLint, and Pint all pass.
 - Docker image builds, the container healthcheck passes, and the PHPUnit suite passes inside the container.
-- Live read-only smoke test through the container returned the expected top five: Lily Kertzmann, Clark Rolfson, Peter Bosco, Chauncey Hartmann, and Mitchel Ortiz. It scanned 13 of 44 affiliates and made 20 custom-field requests.
+- Live read-only smoke test through the container returned the expected top five (documented here with fictional aliases): Avery Cole, Jordan Blake, Morgan Reed, Casey Ellis, and Riley Chen. It scanned 13 of 44 affiliates and made 20 custom-field requests.
 - The automated suite uses `Http::fake()` and does not require network access or real credentials.
+- A fresh-context review identified and the fix pass resolved: refresh URL preservation, persistent token generations, `403` refresh handling, token endpoint connection/`5xx` handling, malformed commission and custom-field validation, stale refresh presentation, and the leaderboard lock duration. Regression tests cover each fix.
 
 ---
 
@@ -119,4 +121,5 @@ The project owner set the scope, stack direction, and presentation requirements.
 - No access tokens are written to logs, documentation, or Git history.
 - The live API calls used for verification were read-only.
 - The implementation keeps secrets in `.env` and sanitizes upstream errors before they reach the UI.
+- `scripts/check-secrets.sh` fails if `.env` is tracked or a tracked file contains a non-empty credential value; CI runs it on every push and pull request.
 - The Docker build context excludes `docs/`, `.env`, `README.md`, `AI_USAGE.md`, and repository metadata.

@@ -42,6 +42,18 @@ class LeaderboardService
         });
     }
 
+    public function cached(): ?LeaderboardResult
+    {
+        $cached = Cache::get($this->cacheKey());
+
+        return $cached instanceof LeaderboardResult ? $cached->withCached(true) : null;
+    }
+
+    public function lockTtl(): int
+    {
+        return max(300, (int) config('services.refersion.leaderboard_lock_ttl', 600));
+    }
+
     /**
      * @param  callable(): LeaderboardResult  $callback
      */
@@ -51,7 +63,7 @@ class LeaderboardService
         callable $callback,
     ): LeaderboardResult {
         try {
-            return Cache::lock($this->lockKey(), 30)->block(10, function () use ($cacheKey, $forceRefresh, $callback): LeaderboardResult {
+            return Cache::lock($this->lockKey(), $this->lockTtl())->block(10, function () use ($cacheKey, $forceRefresh, $callback): LeaderboardResult {
                 if (! $forceRefresh) {
                     $cached = Cache::get($cacheKey);
 

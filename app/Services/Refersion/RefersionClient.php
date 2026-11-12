@@ -127,7 +127,7 @@ class RefersionClient
                 );
             }
 
-            if ($response->status() === 401 && ! $reauthAttempted) {
+            if ($this->isAuthFailure($response) && ! $reauthAttempted) {
                 $this->auth->refresh($auth['generation']);
                 $auth = $this->auth->tokenWithGeneration();
                 $reauthAttempted = true;
@@ -163,7 +163,7 @@ class RefersionClient
                 );
             }
 
-            if ($response->status() === 401 || $response->status() === 403) {
+            if ($this->isAuthFailure($response)) {
                 throw new RefersionAuthenticationException(
                     'Refersion rejected the access token.',
                 );
@@ -204,12 +204,12 @@ class RefersionClient
                 }
             });
 
-            $hasUnauthorized = $this->hasStatus($responses, 401);
+            $hasAuthFailure = $this->hasAuthFailure($responses);
             $hasRateLimit = $this->hasStatus($responses, 429);
             $hasServerError = $this->hasServerError($responses);
             $hasConnectionError = $this->hasConnectionError($responses);
 
-            if ($hasUnauthorized && ! $reauthAttempted) {
+            if ($hasAuthFailure && ! $reauthAttempted) {
                 $this->auth->refresh($auth['generation']);
                 $auth = $this->auth->tokenWithGeneration();
                 $reauthAttempted = true;
@@ -244,7 +244,7 @@ class RefersionClient
                 );
             }
 
-            if ($hasUnauthorized) {
+            if ($hasAuthFailure) {
                 throw new RefersionAuthenticationException(
                     'Refersion rejected the access token.',
                 );
@@ -300,13 +300,24 @@ class RefersionClient
                 continue;
             }
 
-            $fields[$affiliateId] = array_map(
-                fn (mixed $field): CustomField => new CustomField(
-                    (string) (is_array($field) ? ($field['label'] ?? '') : ''),
-                    (string) (is_array($field) ? ($field['value'] ?? '') : ''),
-                ),
-                $json['data'],
-            );
+            $fields[$affiliateId] = [];
+
+            foreach ($json['data'] as $field) {
+                if (
+                    ! is_array($field)
+                    || ! isset($field['label'], $field['value'])
+                    || ! is_string($field['label'])
+                    || ! is_string($field['value'])
+                ) {
+                    Log::warning('Refersion returned a malformed custom field entry.', [
+                        'affiliate_id' => $affiliateId,
+                    ]);
+
+                    continue;
+                }
+
+                $fields[$affiliateId][] = new CustomField($field['label'], $field['value']);
+            }
         }
 
         return $fields;
@@ -333,19 +344,47 @@ class RefersionClient
      */
     private function mapAffiliate(array $record): AffiliateSummary
     {
-        if (! isset($record['id']) || ! is_numeric($record['id'])) {
+        $rawId = $record['id'] ?? null;
+
+        if (is_int($rawId)) {
+            $id = $rawId;
+        } elseif (is_string($rawId) && ctype_digit($rawId)) {
+            $id = (int) $rawId;
+        } else {
             throw new RefersionMalformedResponseException(
-                'Refersion returned an affiliate without a valid ID.',
+                'Refersion returned an affiliate without a valid integer ID.',
             );
         }
 
+        $commission = data_get($record, 'performance.total.commission');
+
+        if ($commission !== null) {
+            if (! is_int($commission) && ! is_float($commission) && ! is_string($commission)) {
+                throw new RefersionMalformedResponseException(
+                    'Refersion returned a non-numeric affiliate commission.',
+                );
+            }
+
+            if (is_float($commission) && ! is_finite($commission)) {
+                throw new RefersionMalformedResponseException(
+                    'Refersion returned a non-finite affiliate commission.',
+                );
+            }
+
+            if (is_string($commission) && ! is_numeric(trim($commission))) {
+                throw new RefersionMalformedResponseException(
+                    'Refersion returned a non-numeric affiliate commission.',
+                );
+            }
+        }
+
         $money = Money::fromApiValue(
-            data_get($record, 'performance.total.commission'),
+            $commission,
             (string) config('services.refersion.commission_unit', 'cents'),
         );
 
         return new AffiliateSummary(
-            id: (int) $record['id'],
+            id: $id,
             firstName: $this->nullableString($record['firstName'] ?? null),
             lastName: $this->nullableString($record['lastName'] ?? null),
             company: $this->nullableString($record['company'] ?? null),
@@ -404,6 +443,25 @@ class RefersionClient
         }
 
         return $retryAfter;
+    }
+
+    private function isAuthFailure(Response $response): bool
+    {
+        return in_array($response->status(), [401, 403], true);
+    }
+
+    /**
+     * @param  array<int|string, Response|ConnectionException>  $responses
+     */
+    private function hasAuthFailure(array $responses): bool
+    {
+        foreach ($responses as $response) {
+            if ($response instanceof Response && $this->isAuthFailure($response)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

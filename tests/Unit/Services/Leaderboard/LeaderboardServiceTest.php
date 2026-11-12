@@ -6,10 +6,13 @@ namespace Tests\Unit\Services\Leaderboard;
 
 use App\DTOs\AffiliateSummary;
 use App\DTOs\CustomField;
+use App\Exceptions\LeaderboardBusyException;
 use App\Exceptions\RefersionApiException;
 use App\Exceptions\RefersionScanLimitException;
 use App\Services\Leaderboard\LeaderboardService;
 use App\Services\Refersion\RefersionClient;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -39,7 +42,7 @@ class LeaderboardServiceTest extends TestCase
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->once()->andReturn([
-            $this->affiliate(1, 702513, 'Lily Kertzmann'),
+            $this->affiliate(1, 702513, 'Avery Cole'),
         ]);
         $client->shouldReceive('getCustomFieldsForMany')->once()->with([1])->andReturn([
             1 => [new CustomField('Display in leaderboard', 'TRUE')],
@@ -48,7 +51,7 @@ class LeaderboardServiceTest extends TestCase
         $result = (new LeaderboardService($client))->get();
 
         $this->assertCount(1, $result->entries);
-        $this->assertSame('Lily Kertzmann', $result->entries[0]->name);
+        $this->assertSame('Avery Cole', $result->entries[0]->name);
         $this->assertSame(702513, $result->entries[0]->commissionCents);
     }
 
@@ -57,7 +60,7 @@ class LeaderboardServiceTest extends TestCase
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->once()->andReturn([
-            $this->affiliate(1, 702513, 'Lily Kertzmann'),
+            $this->affiliate(1, 702513, 'Avery Cole'),
         ]);
         $client->shouldReceive('getCustomFieldsForMany')->once()->andReturn([
             1 => $value === null ? [] : [new CustomField('Display in leaderboard', $value)],
@@ -240,7 +243,7 @@ class LeaderboardServiceTest extends TestCase
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->once()->andReturn([
-            $this->affiliate(1, 702513, 'Lily Kertzmann'),
+            $this->affiliate(1, 702513, 'Avery Cole'),
         ]);
         $client->shouldReceive('getCustomFieldsForMany')->once()->andReturn([
             1 => [new CustomField('Display in leaderboard', 'TRUE')],
@@ -260,7 +263,7 @@ class LeaderboardServiceTest extends TestCase
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->twice()->andReturn([
-            $this->affiliate(1, 702513, 'Lily Kertzmann'),
+            $this->affiliate(1, 702513, 'Avery Cole'),
         ]);
         $client->shouldReceive('getCustomFieldsForMany')->twice()->andReturn([
             1 => [new CustomField('Display in leaderboard', 'TRUE')],
@@ -275,11 +278,56 @@ class LeaderboardServiceTest extends TestCase
         $this->assertFalse($second->meta->cached);
     }
 
+    public function test_lock_ttl_is_longer_than_the_interactive_build_budget(): void
+    {
+        config(['services.refersion.leaderboard_lock_ttl' => 600]);
+
+        $service = new LeaderboardService(Mockery::mock(RefersionClient::class));
+
+        $this->assertSame(600, $service->lockTtl());
+    }
+
+    public function test_lock_timeout_throws_busy_when_no_cached_result_exists(): void
+    {
+        $client = Mockery::mock(RefersionClient::class);
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('block')->once()->andThrow(new LockTimeoutException);
+
+        Cache::shouldReceive('get')->twice()->andReturnNull();
+        Cache::shouldReceive('lock')->once()->andReturn($lock);
+
+        $this->expectException(LeaderboardBusyException::class);
+
+        (new LeaderboardService($client))->get();
+    }
+
+    public function test_cached_returns_the_last_successful_result_without_contacting_the_api(): void
+    {
+        $client = Mockery::mock(RefersionClient::class);
+        $client->shouldReceive('listAllAffiliates')->once()->andReturn([
+            $this->affiliate(1, 702513, 'Avery Cole'),
+        ]);
+        $client->shouldReceive('getCustomFieldsForMany')->once()->andReturn([
+            1 => [new CustomField('Display in leaderboard', 'TRUE')],
+        ]);
+
+        $service = new LeaderboardService($client);
+
+        $this->assertNull($service->cached());
+
+        $first = $service->get();
+        $cached = $service->cached();
+
+        $this->assertNotNull($cached);
+        $this->assertTrue($cached->meta->cached);
+        $this->assertSame($first->entries[0]->name, $cached->entries[0]->name);
+    }
+
     public function test_failed_refresh_preserves_the_previous_cache_entry(): void
     {
         $client = Mockery::mock(RefersionClient::class);
         $client->shouldReceive('listAllAffiliates')->once()->andReturn([
-            $this->affiliate(1, 702513, 'Lily Kertzmann'),
+            $this->affiliate(1, 702513, 'Avery Cole'),
         ]);
         $client->shouldReceive('listAllAffiliates')->once()->andThrow(new RefersionApiException('upstream failure'));
         $client->shouldReceive('getCustomFieldsForMany')->once()->andReturn([

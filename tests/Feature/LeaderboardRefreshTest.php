@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\DTOs\LeaderboardEntry;
 use App\DTOs\LeaderboardMeta;
 use App\DTOs\LeaderboardResult;
+use App\Exceptions\RefersionApiException;
 use App\Services\Leaderboard\LeaderboardService;
 use Inertia\Testing\AssertableInertia;
 use Mockery\MockInterface;
@@ -35,9 +36,32 @@ class LeaderboardRefreshTest extends TestCase
             ->assertInertia(function (AssertableInertia $page): void {
                 $page->component('leaderboard')
                     ->has('leaderboard.data', 1)
-                    ->where('leaderboard.data.0.name', 'Lily Kertzmann')
+                    ->where('leaderboard.data.0.name', 'Avery Cole')
                     ->where('leaderboard.error', null)
                     ->where('leaderboard.meta.cached', false);
+            });
+    }
+
+    public function test_refresh_failure_returns_the_cached_result_with_a_stale_error(): void
+    {
+        $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('get')
+                ->with(true)
+                ->once()
+                ->andThrow(new RefersionApiException('upstream failure'));
+            $mock->shouldReceive('cached')
+                ->once()
+                ->andReturn($this->leaderboardResult()->withCached(true));
+        });
+
+        $this->post('/leaderboard/refresh')
+            ->assertOk()
+            ->assertInertia(function (AssertableInertia $page): void {
+                $page->component('leaderboard')
+                    ->has('leaderboard.data', 1)
+                    ->where('leaderboard.data.0.name', 'Avery Cole')
+                    ->where('leaderboard.meta.cached', true)
+                    ->where('leaderboard.error.message', 'We could not load the leaderboard right now. Please try again in a moment.');
             });
     }
 
@@ -64,7 +88,7 @@ class LeaderboardRefreshTest extends TestCase
                 new LeaderboardEntry(
                     rank: 1,
                     affiliateId: 8572722,
-                    name: 'Lily Kertzmann',
+                    name: 'Avery Cole',
                     email: 'lily@example.com',
                     commissionCents: 702513,
                     currency: 'USD',

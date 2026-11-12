@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Refersion;
 
+use App\Exceptions\RefersionApiException;
 use App\Exceptions\RefersionAuthenticationException;
 use App\Exceptions\RefersionRateLimitException;
 use App\Services\Refersion\RefersionAuthService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Tests\TestCase;
 
 class RefersionAuthServiceTest extends TestCase
@@ -18,6 +21,7 @@ class RefersionAuthServiceTest extends TestCase
         parent::setUp();
 
         Cache::flush();
+        Sleep::fake();
         Http::preventStrayRequests();
 
         config([
@@ -101,6 +105,28 @@ class RefersionAuthServiceTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_a_stale_generation_does_not_refresh_after_natural_token_expiry(): void
+    {
+        Http::fakeSequence('https://auth.refersion.test/oauth/token')
+            ->push(['expires_in' => 61, 'access_token' => 'token-1'])
+            ->push(['expires_in' => 3600, 'access_token' => 'token-2']);
+
+        $service = app(RefersionAuthService::class);
+
+        $first = $service->tokenWithGeneration();
+
+        $this->travel(61)->seconds();
+
+        $second = $service->tokenWithGeneration();
+        $third = $service->refresh($first['generation']);
+
+        $this->assertSame(1, $first['generation']);
+        $this->assertSame(2, $second['generation']);
+        $this->assertSame('token-2', $second['token']);
+        $this->assertSame('token-2', $third);
+        Http::assertSentCount(2);
+    }
+
     public function test_missing_credentials_throw_an_authentication_exception(): void
     {
         config([
@@ -139,6 +165,66 @@ class RefersionAuthServiceTest extends TestCase
             $this->fail('Expected a rate limit exception.');
         } catch (RefersionRateLimitException $exception) {
             $this->assertSame(7, $exception->retryAfter);
+        }
+    }
+
+    public function test_a_token_connection_failure_is_retried_then_succeeds(): void
+    {
+        $attempts = 0;
+
+        Http::fake(function () use (&$attempts) {
+            $attempts++;
+
+            if ($attempts === 1) {
+                throw new ConnectionException('connection failed');
+            }
+
+            return Http::response([
+                'expires_in' => 3600,
+                'access_token' => 'token-after-retry',
+            ]);
+        });
+
+        $token = app(RefersionAuthService::class)->token();
+
+        $this->assertSame('token-after-retry', $token);
+        $this->assertSame(2, $attempts);
+    }
+
+    public function test_persistent_token_connection_failures_throw_an_api_exception(): void
+    {
+        Http::fake(function () {
+            throw new ConnectionException('connection failed');
+        });
+
+        $this->expectException(RefersionApiException::class);
+
+        app(RefersionAuthService::class)->token();
+    }
+
+    public function test_a_token_server_error_is_retried_then_succeeds(): void
+    {
+        Http::fakeSequence('https://auth.refersion.test/oauth/token')
+            ->push(['error' => 'server error'], 500)
+            ->push(['expires_in' => 3600, 'access_token' => 'token-after-500']);
+
+        $token = app(RefersionAuthService::class)->token();
+
+        $this->assertSame('token-after-500', $token);
+        Http::assertSentCount(2);
+    }
+
+    public function test_persistent_token_server_errors_throw_an_api_exception(): void
+    {
+        Http::fake(function () {
+            return Http::response(['error' => 'server error'], 500);
+        });
+
+        try {
+            app(RefersionAuthService::class)->token();
+            $this->fail('Expected an API exception.');
+        } catch (RefersionApiException $exception) {
+            $this->assertSame(500, $exception->status);
         }
     }
 

@@ -45,6 +45,7 @@ return [
         'custom_fields_chunk' => (int) env('REFERSION_CUSTOM_FIELDS_CHUNK', 10),
         'leaderboard_size' => (int) env('REFERSION_LEADERBOARD_SIZE', 5),
         'leaderboard_cache_ttl' => (int) env('REFERSION_LEADERBOARD_CACHE_TTL', 300),
+        'leaderboard_lock_ttl' => (int) env('REFERSION_LEADERBOARD_LOCK_TTL', 600),
         'commission_unit' => env('REFERSION_COMMISSION_UNIT', 'cents'),
         'max_pages' => (int) env('REFERSION_MAX_PAGES', 500),
         'max_candidates' => (int) env('REFERSION_MAX_CANDIDATES', 1000),

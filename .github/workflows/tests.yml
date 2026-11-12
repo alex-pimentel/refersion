@@ -12,6 +12,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for tracked credentials
+        run: bash scripts/check-secrets.sh
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

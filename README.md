@@ -53,11 +53,11 @@ It is intentionally small in scope but production-minded in the areas that matte
 │                                                                    │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ #   Affiliate              Email              Lifetime       │  │
-│  │ 1   Lily Kertzmann         lily@example.com   $7,025.13      │  │
-│  │ 2   Clark Rolfson          clark@example.com  $5,748.70      │  │
-│  │ 3   Peter Bosco            peter@example.com  $5,726.66      │  │
-│  │ 4   Chauncey Hartmann      chauncey@ex.com    $5,627.30      │  │
-│  │ 5   Mitchel Ortiz          mitchel@example.com $4,772.34     │  │
+│  │ 1   Avery Cole         lily@example.com   $7,025.13      │  │
+│  │ 2   Jordan Blake          clark@example.com  $5,748.70      │  │
+│  │ 3   Morgan Reed            peter@example.com  $5,726.66      │  │
+│  │ 4   Casey Ellis      chauncey@ex.com    $5,627.30      │  │
+│  │ 5   Riley Chen          mitchel@example.com $4,772.34     │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                    │
 │  ● Cached · Updated 2 min ago · Scanned 13 of 44 affiliates        │
@@ -184,11 +184,11 @@ A sample Refersion account produces this leaderboard:
 
 | Rank | Affiliate | Lifetime commission |
 |---:|---|---:|
-| 1 | Lily Kertzmann | $7,025.13 |
-| 2 | Clark Rolfson | $5,748.70 |
-| 3 | Peter Bosco | $5,726.66 |
-| 4 | Chauncey Hartmann | $5,627.30 |
-| 5 | Mitchel Ortiz | $4,772.34 |
+| 1 | Avery Cole | $7,025.13 |
+| 2 | Jordan Blake | $5,748.70 |
+| 3 | Morgan Reed | $5,726.66 |
+| 4 | Casey Ellis | $5,627.30 |
+| 5 | Riley Chen | $4,772.34 |
 
 The sample data also contains near-matches such as `true`, `TRUE ` (trailing space), `false`, and `no`. They are excluded by the strict eligibility rule.
 
@@ -238,6 +238,9 @@ bash scripts/test.sh
 # Check PHP formatting
 docker compose exec app ./vendor/bin/pint --test
 
+# Check that no credentials are tracked by Git
+bash scripts/check-secrets.sh
+
 # Run the frontend tests, type-check, and production build
 npm test
 npm run type-check
@@ -264,7 +267,7 @@ The container stores the SQLite cache in a named volume, runs migrations at star
 
 ## Testing
 
-The automated suite uses Laravel's HTTP fake and does not call the real Refersion API. Fixtures are synthetic and anonymized; no live affiliate PII or credentials are committed.
+The automated suite uses Laravel's HTTP fake and does not call the real Refersion API. Fixtures use fictional names and synthetic values; no live affiliate emails or credentials are committed.
 
 Coverage:
 
@@ -282,6 +285,7 @@ Coverage:
 bash scripts/test-container.sh
 bash scripts/test.sh
 docker compose exec app ./vendor/bin/pint --test
+bash scripts/check-secrets.sh
 npm test
 npm run type-check
 ```
@@ -386,7 +390,7 @@ Accessible application variants are defined in the design document, including a 
 
 ## Security
 
-- API credentials live in `.env` and are never committed.
+- API credentials live in `.env` and are never committed. `bash scripts/check-secrets.sh` fails if `.env` is tracked or a tracked file contains a non-empty credential value.
 - OAuth tokens and client secrets are never sent to React or written to logs.
 - Upstream error details are sanitized; the UI receives a generic message and a short reference.
 - The refresh endpoint is throttled, and the public route is documented as needing authentication/SSO in production.

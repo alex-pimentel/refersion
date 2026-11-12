@@ -23,23 +23,23 @@ class DtoTest extends TestCase
 
     public function test_display_name_prefers_first_and_last_name(): void
     {
-        $affiliate = $this->affiliate(firstName: 'Lily', lastName: 'Kertzmann', company: 'Acme', email: 'lily@example.com');
+        $affiliate = $this->affiliate(firstName: 'Avery', lastName: 'Cole', company: 'Acme', email: 'avery@example.com');
 
-        $this->assertSame('Lily Kertzmann', $affiliate->displayName());
+        $this->assertSame('Avery Cole', $affiliate->displayName());
     }
 
     public function test_display_name_falls_back_to_company(): void
     {
-        $affiliate = $this->affiliate(firstName: null, lastName: null, company: 'Acme', email: 'lily@example.com');
+        $affiliate = $this->affiliate(firstName: null, lastName: null, company: 'Acme', email: 'avery@example.com');
 
         $this->assertSame('Acme', $affiliate->displayName());
     }
 
     public function test_display_name_falls_back_to_email_local_part(): void
     {
-        $affiliate = $this->affiliate(firstName: null, lastName: null, company: null, email: 'lily@example.com');
+        $affiliate = $this->affiliate(firstName: null, lastName: null, company: null, email: 'avery@example.com');
 
-        $this->assertSame('lily', $affiliate->displayName());
+        $this->assertSame('avery', $affiliate->displayName());
     }
 
     public function test_display_name_falls_back_to_affiliate_id(): void
@@ -54,8 +54,8 @@ class DtoTest extends TestCase
         $entry = new LeaderboardEntry(
             rank: 1,
             affiliateId: 123,
-            name: 'Lily Kertzmann',
-            email: 'lily@example.com',
+            name: 'Avery Cole',
+            email: 'avery@example.com',
             commissionCents: 702513,
             currency: 'USD',
         );
@@ -63,8 +63,8 @@ class DtoTest extends TestCase
         $this->assertSame([
             'rank' => 1,
             'affiliateId' => 123,
-            'name' => 'Lily Kertzmann',
-            'email' => 'lily@example.com',
+            'name' => 'Avery Cole',
+            'email' => 'avery@example.com',
             'commissionCents' => 702513,
             'currency' => 'USD',
         ], $entry->toArray());
@@ -72,7 +72,7 @@ class DtoTest extends TestCase
 
     public function test_leaderboard_result_serializes_data_and_meta(): void
     {
-        $entry = new LeaderboardEntry(1, 123, 'Lily Kertzmann', 'lily@example.com', 702513, 'USD');
+        $entry = new LeaderboardEntry(1, 123, 'Avery Cole', 'avery@example.com', 702513, 'USD');
         $meta = new LeaderboardMeta(
             generatedAt: '2026-11-12T20:00:00+00:00',
             cached: false,

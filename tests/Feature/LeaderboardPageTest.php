@@ -34,7 +34,7 @@ class LeaderboardPageTest extends TestCase
                 $page->component('leaderboard')
                     ->loadDeferredProps(function (AssertableInertia $page): void {
                         $page->has('leaderboard.data', 1)
-                            ->where('leaderboard.data.0.name', 'Lily Kertzmann')
+                            ->where('leaderboard.data.0.name', 'Avery Cole')
                             ->where('leaderboard.data.0.commissionCents', 702513)
                             ->where('leaderboard.error', null)
                             ->where('leaderboard.meta.cached', false);
@@ -46,6 +46,7 @@ class LeaderboardPageTest extends TestCase
     {
         $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
             $mock->shouldReceive('get')->once()->andThrow(new RefersionApiException('upstream failure'));
+            $mock->shouldReceive('cached')->once()->andReturnNull();
         });
 
         $this->get('/')
@@ -85,7 +86,7 @@ class LeaderboardPageTest extends TestCase
             new LeaderboardEntry(
                 rank: 1,
                 affiliateId: 8572722,
-                name: 'Lily Kertzmann',
+                name: 'Avery Cole',
                 email: 'lily@example.com',
                 commissionCents: 702513,
                 currency: 'USD',

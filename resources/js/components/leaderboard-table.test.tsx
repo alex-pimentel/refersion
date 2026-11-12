@@ -7,7 +7,7 @@ const entries: LeaderboardEntry[] = [
     {
         rank: 1,
         affiliateId: 8572722,
-        name: 'Lily Kertzmann',
+        name: 'Avery Cole',
         email: 'lily@example.com',
         commissionCents: 702513,
         currency: 'USD',
@@ -15,7 +15,7 @@ const entries: LeaderboardEntry[] = [
     {
         rank: 2,
         affiliateId: 8572717,
-        name: 'Clark Rolfson',
+        name: 'Jordan Blake',
         email: 'clark@example.com',
         commissionCents: 574870,
         currency: 'USD',
@@ -23,7 +23,7 @@ const entries: LeaderboardEntry[] = [
     {
         rank: 3,
         affiliateId: 8572699,
-        name: 'Peter Bosco',
+        name: 'Morgan Reed',
         email: '',
         commissionCents: 572666,
         currency: 'USD',
@@ -34,8 +34,8 @@ describe('LeaderboardTable', () => {
     it('renders the ranked affiliates with formatted commission', () => {
         render(<LeaderboardTable entries={entries} />);
 
-        expect(screen.getByText('Lily Kertzmann')).toBeInTheDocument();
-        expect(screen.getByText('Clark Rolfson')).toBeInTheDocument();
+        expect(screen.getByText('Avery Cole')).toBeInTheDocument();
+        expect(screen.getByText('Jordan Blake')).toBeInTheDocument();
         expect(screen.getByText('$7,025.13')).toBeInTheDocument();
         expect(screen.getByText('$5,748.70')).toBeInTheDocument();
         expect(screen.getByLabelText('Rank 1')).toHaveTextContent('1');

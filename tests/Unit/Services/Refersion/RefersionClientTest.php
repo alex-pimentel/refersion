@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Refersion;
 
 use App\Exceptions\RefersionApiException;
+use App\Exceptions\RefersionAuthenticationException;
 use App\Exceptions\RefersionMalformedResponseException;
 use App\Exceptions\RefersionRateLimitException;
 use App\Services\Refersion\RefersionClient;
@@ -103,9 +104,9 @@ class RefersionClientTest extends TestCase
 
             return Http::response([
                 'data' => [$this->affiliate(8572722, 702513, [
-                    'firstName' => 'Lily',
-                    'lastName' => 'Kertzmann',
-                    'email' => 'lily@example.com',
+                    'firstName' => 'Avery',
+                    'lastName' => 'Cole',
+                    'email' => 'avery@example.com',
                 ])],
             ]);
         });
@@ -113,8 +114,8 @@ class RefersionClientTest extends TestCase
         $affiliate = app(RefersionClient::class)->listAllAffiliates()[0];
 
         $this->assertSame(8572722, $affiliate->id);
-        $this->assertSame('Lily Kertzmann', $affiliate->displayName());
-        $this->assertSame('lily@example.com', $affiliate->displayEmail());
+        $this->assertSame('Avery Cole', $affiliate->displayName());
+        $this->assertSame('avery@example.com', $affiliate->displayEmail());
         $this->assertSame(702513, $affiliate->commissionCents);
         $this->assertSame('USD', $affiliate->currency);
     }
@@ -322,6 +323,202 @@ class RefersionClientTest extends TestCase
         $this->assertSame(4, $apiCalls);
         $this->assertSame('TRUE', $fields[1][0]->value);
         $this->assertSame('TRUE', $fields[2][0]->value);
+    }
+
+    public function test_a_403_refreshes_the_token_and_retries_once(): void
+    {
+        $authCalls = 0;
+        $apiCalls = 0;
+
+        Http::fake(function (Request $request) use (&$authCalls, &$apiCalls) {
+            if ($this->isAuthRequest($request)) {
+                $authCalls++;
+
+                return Http::response([
+                    'expires_in' => 3600,
+                    'access_token' => 'token-'.$authCalls,
+                ]);
+            }
+
+            $apiCalls++;
+
+            if ($apiCalls === 1) {
+                return Http::response(['error' => 'Forbidden'], 403);
+            }
+
+            return Http::response([
+                'data' => [$this->affiliate(1, 500)],
+            ]);
+        });
+
+        $affiliates = app(RefersionClient::class)->listAllAffiliates();
+
+        $this->assertCount(1, $affiliates);
+        $this->assertSame(2, $authCalls);
+        $this->assertSame(2, $apiCalls);
+    }
+
+    public function test_a_pooled_403_refreshes_the_token_once(): void
+    {
+        $authCalls = 0;
+        $apiCalls = 0;
+
+        Http::fake(function (Request $request) use (&$authCalls, &$apiCalls) {
+            if ($this->isAuthRequest($request)) {
+                $authCalls++;
+
+                return Http::response([
+                    'expires_in' => 3600,
+                    'access_token' => 'token-'.$authCalls,
+                ]);
+            }
+
+            $apiCalls++;
+
+            if ($apiCalls <= 2) {
+                return Http::response(['error' => 'Forbidden'], 403);
+            }
+
+            return Http::response([
+                'data' => [$this->customField('Display in leaderboard', 'TRUE')],
+            ]);
+        });
+
+        $fields = app(RefersionClient::class)->getCustomFieldsForMany([1, 2]);
+
+        $this->assertSame(2, $authCalls);
+        $this->assertSame(4, $apiCalls);
+        $this->assertSame('TRUE', $fields[1][0]->value);
+        $this->assertSame('TRUE', $fields[2][0]->value);
+    }
+
+    public function test_persistent_401_after_refresh_throws_authentication_exception(): void
+    {
+        $authCalls = 0;
+
+        Http::fake(function (Request $request) use (&$authCalls) {
+            if ($this->isAuthRequest($request)) {
+                $authCalls++;
+
+                return Http::response([
+                    'expires_in' => 3600,
+                    'access_token' => 'token-'.$authCalls,
+                ]);
+            }
+
+            return Http::response(['error' => 'Unauthenticated'], 401);
+        });
+
+        $this->expectException(RefersionAuthenticationException::class);
+
+        app(RefersionClient::class)->listAllAffiliates();
+    }
+
+    public function test_persistent_403_after_refresh_throws_authentication_exception(): void
+    {
+        $authCalls = 0;
+
+        Http::fake(function (Request $request) use (&$authCalls) {
+            if ($this->isAuthRequest($request)) {
+                $authCalls++;
+
+                return Http::response([
+                    'expires_in' => 3600,
+                    'access_token' => 'token-'.$authCalls,
+                ]);
+            }
+
+            return Http::response(['error' => 'Forbidden'], 403);
+        });
+
+        $this->expectException(RefersionAuthenticationException::class);
+
+        app(RefersionClient::class)->listAllAffiliates();
+    }
+
+    public function test_malformed_commission_values_throw_a_malformed_response_exception(): void
+    {
+        $this->fakeAuth();
+
+        Http::fake(function (Request $request) {
+            if ($this->isAuthRequest($request)) {
+                return $this->authResponse();
+            }
+
+            return Http::response([
+                'data' => [$this->affiliate(1, 500, [
+                    'performance' => ['total' => ['commission' => ['nested' => true]]],
+                ])],
+            ]);
+        });
+
+        $this->expectException(RefersionMalformedResponseException::class);
+
+        app(RefersionClient::class)->listAllAffiliates();
+    }
+
+    public function test_non_numeric_commission_values_throw_a_malformed_response_exception(): void
+    {
+        $this->fakeAuth();
+
+        Http::fake(function (Request $request) {
+            if ($this->isAuthRequest($request)) {
+                return $this->authResponse();
+            }
+
+            return Http::response([
+                'data' => [$this->affiliate(1, 500, [
+                    'performance' => ['total' => ['commission' => 'not-a-number']],
+                ])],
+            ]);
+        });
+
+        $this->expectException(RefersionMalformedResponseException::class);
+
+        app(RefersionClient::class)->listAllAffiliates();
+    }
+
+    public function test_decimal_affiliate_ids_are_rejected(): void
+    {
+        $this->fakeAuth();
+
+        Http::fake(function (Request $request) {
+            if ($this->isAuthRequest($request)) {
+                return $this->authResponse();
+            }
+
+            return Http::response([
+                'data' => [$this->affiliate(1, 500, ['id' => 1.5])],
+            ]);
+        });
+
+        $this->expectException(RefersionMalformedResponseException::class);
+
+        app(RefersionClient::class)->listAllAffiliates();
+    }
+
+    public function test_malformed_custom_field_entries_are_ignored(): void
+    {
+        $this->fakeAuth();
+
+        Http::fake(function (Request $request) {
+            if ($this->isAuthRequest($request)) {
+                return $this->authResponse();
+            }
+
+            return Http::response([
+                'data' => [
+                    ['label' => ['nested'], 'value' => ['nested']],
+                    $this->customField('Display in leaderboard', 'TRUE'),
+                ],
+            ]);
+        });
+
+        $fields = app(RefersionClient::class)->getCustomFieldsForMany([1]);
+
+        $this->assertCount(1, $fields[1]);
+        $this->assertSame('Display in leaderboard', $fields[1][0]->label);
+        $this->assertSame('TRUE', $fields[1][0]->value);
     }
 
     private function fakeAuth(): void
