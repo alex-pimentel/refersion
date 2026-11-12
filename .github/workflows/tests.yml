@@ -55,6 +55,9 @@ jobs:
       - name: Check PHP formatting
         run: ./vendor/bin/pint --test
 
+      - name: Run PHP static analysis
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G
+
       - name: Check frontend formatting
         run: npm run format:check
 

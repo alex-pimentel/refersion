@@ -238,6 +238,9 @@ bash scripts/test.sh
 # Check PHP formatting
 docker compose exec app ./vendor/bin/pint --test
 
+# Run PHP static analysis at Larastan level 7
+bash scripts/phpstan.sh
+
 # Check that no credentials are tracked by Git
 bash scripts/check-secrets.sh
 
@@ -281,10 +284,13 @@ Coverage:
 - Inertia page and refresh responses.
 - Currency formatting and UI state rendering.
 
+Static analysis uses Larastan level 7 and reports no errors.
+
 ```bash
 bash scripts/test-container.sh
 bash scripts/test.sh
 docker compose exec app ./vendor/bin/pint --test
+bash scripts/phpstan.sh
 bash scripts/check-secrets.sh
 npm test
 npm run type-check
@@ -330,6 +336,7 @@ scripts/
 .github/workflows/
 Dockerfile
 docker-compose.yml
+phpstan.neon
 vitest.config.ts
 ```
 

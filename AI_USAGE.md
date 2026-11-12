@@ -59,6 +59,12 @@ The README was rewritten to describe a standalone example project. The design do
 
 The Docker build context excludes `docs/` and other files that are not needed at runtime. The design document remains in the repository but is not copied into the application image.
 
+### 6. PHP static analysis
+
+> I want level 7.
+
+Larastan was added as a dev dependency with a `phpstan.neon` configuration at level 7, a `scripts/phpstan.sh` runner, and a CI step. The first level-7 run found seven type/iterable findings in the Refersion client; the docblocks and helper parameter types were tightened until the analysis reported no errors.
+
 ---
 
 ## What the AI produced
@@ -68,6 +74,7 @@ The Docker build context excludes `docs/` and other files that are not needed at
 - The Laravel services, DTOs, exceptions, controller, routes, and configuration.
 - The React/Inertia leaderboard page and its loading, success, empty, error, and refresh states.
 - The PHPUnit and Vitest test suites.
+- The Larastan level-7 configuration and fixes.
 - The Docker multi-stage build, Compose stack, Nginx/Supervisor configuration, entrypoint, and healthcheck.
 - The GitHub Actions CI workflow.
 
@@ -86,6 +93,7 @@ The implementation was built and verified in this repository. The final verifica
 | A first README draft used submission-oriented language. | It was rewritten as a clear example-project README, per the project owner's instruction. |
 | The first container test run inherited the production environment, causing CSRF and cache-isolation failures. | PHPUnit environment values now use `force="true"`, and `scripts/test-container.sh` supplies the testing/array/in-memory settings needed by the containerized suite. |
 | A fresh-context final review found refresh-URL preservation, token-generation lifetime, `403` handling, token-endpoint transport handling, malformed-payload validation, stale-data presentation, and lock-duration issues. | Regression tests were added first, the implementation was corrected, and the full PHPUnit, Vitest, Docker, and build checks were rerun successfully. |
+| The first implementation had no PHP static analysis. | Larastan level 7 was added; seven initial findings were fixed and the check now runs in CI. |
 
 ---
 
@@ -101,7 +109,8 @@ The implementation was built and verified in this repository. The final verifica
 - No write requests were made to the Refersion account.
 - PHPUnit: 85 tests, 355 assertions.
 - Vitest: 11 tests.
-- `npm run build`, `npm run type-check`, ESLint, and Pint all pass.
+- Larastan level 7 reports no errors.
+- `npm run build`, `npm run type-check`, ESLint, Prettier, and Pint all pass.
 - Docker image builds, the container healthcheck passes, and the PHPUnit suite passes inside the container.
 - Live read-only smoke test through the container returned the expected top five (documented here with fictional aliases): Avery Cole, Jordan Blake, Morgan Reed, Casey Ellis, and Riley Chen. It scanned 13 of 44 affiliates and made 20 custom-field requests.
 - The automated suite uses `Http::fake()` and does not require network access or real credentials.

@@ -71,7 +71,7 @@ These are explicit failure modes to avoid:
 | Build | Vite |
 | Container | Docker multi-stage build, Nginx + PHP-FPM, SQLite for cache |
 | Tests | Pest (or PHPUnit if the starter kit is PHPUnit-based) |
-| Formatting | Laravel Pint, ESLint/Prettier, `tsc --noEmit` |
+| Formatting and analysis | Laravel Pint, Larastan level 7, ESLint/Prettier, `tsc --noEmit` |
 | CI | GitHub Actions |
 
 Exact patch versions are pinned in `composer.lock` and `package-lock.json` at implementation time. The Docker base images should use current stable tags (e.g. `php:8.4-fpm-alpine`, `node:22-alpine`).
@@ -990,7 +990,8 @@ Optional `Makefile` targets: `setup`, `up`, `down`, `test`, `lint`, `build`.
 - Copy `.env.example` to `.env`, generate app key, create SQLite file, run migrations.
 - `php artisan test`.
 - `./vendor/bin/pint --test`.
-- `npm run type-check` (if script exists).
+- `./vendor/bin/phpstan analyse --memory-limit=1G` (Larastan level 7).
+- `npm run format:check`, `npm run lint:check`, `npm run type-check`, and `npm test`.
 - All tests use `Http::fake()`; no secrets required in CI.
 
 ---
@@ -1092,8 +1093,9 @@ Optional `Makefile` targets: `setup`, `up`, `down`, `test`, `lint`, `build`.
 8. Restart the container; confirm the cache persists via the SQLite volume and the page loads without an immediate API call (check logs).
 9. `bash scripts/test-container.sh` — all green.
 10. `docker compose exec app ./vendor/bin/pint --test` — clean.
-11. Run a final `npm run build` and `php artisan test` on the host or in CI.
-12. Scan the staged files and Git history for credentials before pushing.
+11. `bash scripts/phpstan.sh` — Larastan level 7 clean.
+12. Run a final `npm run build` and `php artisan test` on the host or in CI.
+13. Scan the staged files and Git history for credentials before pushing.
 
 ### 12.4 Acceptance criteria
 

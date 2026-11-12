@@ -18,6 +18,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
+use Throwable;
 
 class RefersionClient
 {
@@ -101,6 +102,9 @@ class RefersionClient
         return $this->getCustomFieldsForMany([$affiliateId])[$affiliateId] ?? [];
     }
 
+    /**
+     * @param  array<string, int|string>  $query
+     */
     private function request(string $path, array $query = []): Response
     {
         $auth = $this->auth->tokenWithGeneration();
@@ -255,7 +259,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      * @return array<int, CustomField[]>
      */
     private function mapCustomFieldResponses(array $responses): array
@@ -430,7 +434,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      */
     private function maxRetryAfter(array $responses): int
     {
@@ -451,7 +455,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      */
     private function hasAuthFailure(array $responses): bool
     {
@@ -465,7 +469,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      */
     private function hasStatus(array $responses, int $status): bool
     {
@@ -479,7 +483,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      */
     private function hasServerError(array $responses): bool
     {
@@ -493,7 +497,7 @@ class RefersionClient
     }
 
     /**
-     * @param  array<int|string, Response|ConnectionException>  $responses
+     * @param  array<int|string, Response|Throwable>  $responses
      */
     private function hasConnectionError(array $responses): bool
     {
