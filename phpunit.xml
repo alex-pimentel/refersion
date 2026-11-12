@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+
+        <env name="REFERSION_CLIENT_ID" value="test-client-id"/>
+        <env name="REFERSION_CLIENT_SECRET" value="test-client-secret"/>
+        <env name="REFERSION_AUTH_URL" value="https://auth.refersion.test/oauth/token"/>
+        <env name="REFERSION_BASE_URL" value="https://api.refersion.test/v2026-08"/>
+        <env name="REFERSION_TOKEN_TYPE" value="short_lived"/>
+        <env name="REFERSION_PAGE_LIMIT" value="100"/>
+        <env name="REFERSION_CUSTOM_FIELDS_CHUNK" value="10"/>
+        <env name="REFERSION_LEADERBOARD_SIZE" value="5"/>
+        <env name="REFERSION_LEADERBOARD_CACHE_TTL" value="300"/>
+        <env name="REFERSION_COMMISSION_UNIT" value="cents"/>
+        <env name="REFERSION_MAX_PAGES" value="500"/>
+        <env name="REFERSION_MAX_CANDIDATES" value="1000"/>
+    </php>
+</phpunit>

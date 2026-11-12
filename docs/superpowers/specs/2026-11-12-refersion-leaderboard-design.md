@@ -66,7 +66,7 @@ These are explicit failure modes to avoid:
 
 | Concern | Choice |
 |---|---|
-| Backend | Laravel 13 (latest stable at implementation time), PHP 8.4 |
+| Backend | Laravel 12 (current stable React starter kit), PHP 8.4 |
 | Frontend | React 19 + TypeScript + Inertia 2 + Tailwind CSS 4 |
 | Build | Vite |
 | Container | Docker multi-stage build, Nginx + PHP-FPM, SQLite for cache |

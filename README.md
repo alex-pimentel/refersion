@@ -198,7 +198,7 @@ The sample data also contains near-matches such as `true`, `TRUE ` (trailing spa
 
 | Layer | Technology |
 |---|---|
-| Backend | Laravel 13, PHP 8.4 |
+| Backend | Laravel 12, PHP 8.4 |
 | Frontend | React 19, TypeScript, Inertia 2 |
 | Styling | Tailwind CSS 4 |
 | Build | Vite |
