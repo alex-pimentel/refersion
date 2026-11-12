@@ -1,0 +1,32 @@
+# Documentation is not needed inside the application image
+docs/
+
+# Version control and local environment
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Dependencies are installed inside the build stages
+node_modules/
+vendor/
+
+# Build output is generated in the assets stage
+public/build/
+public/hot
+
+# Local runtime data
+storage/logs/*
+database/*.sqlite
+database/*.sqlite-journal
+database/*.sqlite-shm
+database/*.sqlite-wal
+
+# Test and editor artifacts
+.phpunit.cache
+.phpunit.result.cache
+coverage/
+.idea/
+.vscode/
+.DS_Store
