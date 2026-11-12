@@ -16,6 +16,19 @@ final readonly class LeaderboardMeta
         public int $durationMs,
     ) {}
 
+    public function withCached(bool $cached): self
+    {
+        return new self(
+            generatedAt: $this->generatedAt,
+            cached: $cached,
+            totalAffiliates: $this->totalAffiliates,
+            scannedAffiliates: $this->scannedAffiliates,
+            eligibleCount: $this->eligibleCount,
+            customFieldRequests: $this->customFieldRequests,
+            durationMs: $this->durationMs,
+        );
+    }
+
     /**
      * @return array{
      *     generatedAt: string,

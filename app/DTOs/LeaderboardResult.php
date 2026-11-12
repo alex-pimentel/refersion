@@ -14,6 +14,11 @@ final readonly class LeaderboardResult
         public LeaderboardMeta $meta,
     ) {}
 
+    public function withCached(bool $cached): self
+    {
+        return new self($this->entries, $this->meta->withCached($cached));
+    }
+
     /**
      * @return array{
      *     data: array<int, array{
