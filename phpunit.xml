@@ -18,30 +18,30 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
 
-        <env name="REFERSION_CLIENT_ID" value="test-client-id"/>
-        <env name="REFERSION_CLIENT_SECRET" value="test-client-secret"/>
-        <env name="REFERSION_AUTH_URL" value="https://auth.refersion.test/oauth/token"/>
-        <env name="REFERSION_BASE_URL" value="https://api.refersion.test/v2026-08"/>
-        <env name="REFERSION_TOKEN_TYPE" value="short_lived"/>
-        <env name="REFERSION_PAGE_LIMIT" value="100"/>
-        <env name="REFERSION_CUSTOM_FIELDS_CHUNK" value="10"/>
-        <env name="REFERSION_LEADERBOARD_SIZE" value="5"/>
-        <env name="REFERSION_LEADERBOARD_CACHE_TTL" value="300"/>
-        <env name="REFERSION_COMMISSION_UNIT" value="cents"/>
-        <env name="REFERSION_MAX_PAGES" value="500"/>
-        <env name="REFERSION_MAX_CANDIDATES" value="1000"/>
+        <env name="REFERSION_CLIENT_ID" value="test-client-id" force="true"/>
+        <env name="REFERSION_CLIENT_SECRET" value="test-client-secret" force="true"/>
+        <env name="REFERSION_AUTH_URL" value="https://auth.refersion.test/oauth/token" force="true"/>
+        <env name="REFERSION_BASE_URL" value="https://api.refersion.test/v2026-08" force="true"/>
+        <env name="REFERSION_TOKEN_TYPE" value="short_lived" force="true"/>
+        <env name="REFERSION_PAGE_LIMIT" value="100" force="true"/>
+        <env name="REFERSION_CUSTOM_FIELDS_CHUNK" value="10" force="true"/>
+        <env name="REFERSION_LEADERBOARD_SIZE" value="5" force="true"/>
+        <env name="REFERSION_LEADERBOARD_CACHE_TTL" value="300" force="true"/>
+        <env name="REFERSION_COMMISSION_UNIT" value="cents" force="true"/>
+        <env name="REFERSION_MAX_PAGES" value="500" force="true"/>
+        <env name="REFERSION_MAX_CANDIDATES" value="1000" force="true"/>
     </php>
 </phpunit>

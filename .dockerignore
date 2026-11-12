@@ -1,5 +1,9 @@
-# Documentation is not needed inside the application image
+# Documentation and repository metadata are not needed inside the application image
 docs/
+README.md
+AI_USAGE.md
+.github/
+.superpowers/
 
 # Version control and local environment
 .git
