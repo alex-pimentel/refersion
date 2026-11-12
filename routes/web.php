@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\LeaderboardController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('leaderboard');
-})->name('leaderboard');
+Route::get('/', [LeaderboardController::class, 'index'])
+    ->name('leaderboard')
+    ->middleware('throttle:60,1');
+
+Route::post('/leaderboard/refresh', [LeaderboardController::class, 'refresh'])
+    ->name('leaderboard.refresh')
+    ->middleware('throttle:10,1');
 
 Route::get('/health', function () {
     return response()->json([

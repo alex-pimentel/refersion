@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature;
+
+use App\DTOs\LeaderboardEntry;
+use App\DTOs\LeaderboardMeta;
+use App\DTOs\LeaderboardResult;
+use App\Services\Leaderboard\LeaderboardService;
+use Inertia\Testing\AssertableInertia;
+use Mockery\MockInterface;
+use Tests\TestCase;
+
+class LeaderboardRefreshTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
+    public function test_refresh_forces_a_new_build(): void
+    {
+        $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('get')
+                ->with(true)
+                ->once()
+                ->andReturn($this->leaderboardResult());
+        });
+
+        $this->post('/leaderboard/refresh')
+            ->assertOk()
+            ->assertInertia(function (AssertableInertia $page): void {
+                $page->component('leaderboard')
+                    ->has('leaderboard.data', 1)
+                    ->where('leaderboard.data.0.name', 'Lily Kertzmann')
+                    ->where('leaderboard.error', null)
+                    ->where('leaderboard.meta.cached', false);
+            });
+    }
+
+    public function test_refresh_is_throttled_after_ten_requests(): void
+    {
+        $this->mock(LeaderboardService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('get')
+                ->with(true)
+                ->times(10)
+                ->andReturn($this->leaderboardResult());
+        });
+
+        for ($request = 1; $request <= 10; $request++) {
+            $this->post('/leaderboard/refresh')->assertOk();
+        }
+
+        $this->post('/leaderboard/refresh')->assertStatus(429);
+    }
+
+    private function leaderboardResult(): LeaderboardResult
+    {
+        return new LeaderboardResult(
+            [
+                new LeaderboardEntry(
+                    rank: 1,
+                    affiliateId: 8572722,
+                    name: 'Lily Kertzmann',
+                    email: 'lily@example.com',
+                    commissionCents: 702513,
+                    currency: 'USD',
+                ),
+            ],
+            new LeaderboardMeta(
+                generatedAt: '2026-11-12T20:00:00+00:00',
+                cached: false,
+                totalAffiliates: 44,
+                scannedAffiliates: 20,
+                eligibleCount: 1,
+                customFieldRequests: 20,
+                durationMs: 120,
+            ),
+        );
+    }
+}
